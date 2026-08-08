@@ -14,7 +14,7 @@ const DROPDOWN_ICON = 'pan-down-symbolic';
 const SETTINGS_ICON = 'preferences-system-symbolic';
 const COPY_ICON = 'edit-copy-symbolic';
 const TITLE_TEXT = 'Langux';
-const ENTRY_HINT = 'Type or paste text';
+const ENTRY_HINT = 'Enter text';
 const FOOTER_HINT = 'Ctrl+Enter to translate';
 const COPY_LABEL = 'Copy';
 const COPIED_LABEL = 'Copied ✓';
@@ -115,7 +115,6 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
             style_class: 'langux-entry',
             hint_text: ENTRY_HINT,
             can_focus: true,
-            track_hover: true,
             x_expand: true,
         });
         this._entry.clutter_text.max_length = 4096;
