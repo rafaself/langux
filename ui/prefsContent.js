@@ -40,9 +40,9 @@ export function buildApiKeyGroup() {
     const removeButton = new Gtk.Button({label: 'Remove', css_classes: ['flat']});
 
     const buttons = new Gtk.Box({orientation: Gtk.Orientation.HORIZONTAL, spacing: 6});
-    buttons.add(configureButton);
-    buttons.add(replaceButton);
-    buttons.add(removeButton);
+    buttons.append(configureButton);
+    buttons.append(replaceButton);
+    buttons.append(removeButton);
     row.add_suffix(buttons);
 
     function refresh() {
