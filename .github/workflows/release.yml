@@ -13,6 +13,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Run unit tests
+        run: node --test
+      - name: Validate GSettings schema
+        run: |
+          command -v glib-compile-schemas || { sudo apt-get update && sudo apt-get install -y libglib2.0-bin; }
+          glib-compile-schemas --strict schemas
+      - name: Check JavaScript syntax
+        run: |
+          for f in extension.js prefs.js ui/*.js services/*.js; do
+            node --input-type=module --check < "$f"
+          done
       - name: Package extension
         run: scripts/package.sh
       - name: Verify archive and checksum
