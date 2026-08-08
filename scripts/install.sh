@@ -2,7 +2,7 @@
 set -euo pipefail
 
 UUID="langux@rafaself.github.io"
-REPO="${LANGUX_REPO:-rafaself/Langux}"
+REPO="${LANGUX_REPO:-rafaself/langux}"
 TAG="${LANGUX_TAG:-latest}"
 ARCHIVE_NAME="langux.zip"
 SHA_NAME="langux.zip.sha256"
