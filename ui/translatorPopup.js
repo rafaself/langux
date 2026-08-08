@@ -119,6 +119,8 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
             x_expand: true,
         });
         this._entry.clutter_text.max_length = 4096;
+        this._entry.clutter_text.single_line_mode = false;
+        this._entry.clutter_text.line_wrap = true;
         this._entry.connect('key-press-event', this._onEntryKeyPress.bind(this));
         content.add_child(this._entry);
 
