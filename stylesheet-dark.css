@@ -20,6 +20,15 @@
     background-color: rgba(255, 255, 255, 0.15);
 }
 
+.langux-icon-button:focus,
+.langux-source-button:focus,
+.langux-target-button:focus,
+.langux-swap-button:focus,
+.langux-action-button:focus {
+    outline: 2px solid #99c1f1;
+    -st-outline-radius: 8px;
+}
+
 .langux-title {
     font-size: 13px;
     font-weight: bold;

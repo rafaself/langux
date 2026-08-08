@@ -224,6 +224,7 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
             child,
             can_focus: true,
             reactive: true,
+            x_expand: true,
         });
         button.connect('clicked', () => {
             this._closeLanguageMenus();
@@ -236,11 +237,12 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
         const arrows = new St.BoxLayout({vertical: true, style_class: 'langux-swap-arrows'});
         arrows.add_child(new St.Icon({icon_name: SWAP_ARROW_RIGHT, icon_size: 12}));
         arrows.add_child(new St.Icon({icon_name: SWAP_ARROW_LEFT, icon_size: 12}));
-        const button = new St.Button({
+const button = new St.Button({
             style_class: 'langux-swap-button',
             child: arrows,
             can_focus: true,
             reactive: true,
+            accessible_name: 'Swap source and target languages',
         });
         button.connect('clicked', () => this._swapLanguages());
         return button;
@@ -313,6 +315,7 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
 
         const explicit = isExplicit(source);
         this._swapButton.reactive = explicit;
+        this._swapButton.can_focus = explicit;
         if (explicit)
             this._swapButton.remove_style_class_name(INSENSITIVE_CLASS);
         else
