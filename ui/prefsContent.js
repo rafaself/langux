@@ -84,10 +84,14 @@ export function buildApiKeyGroup() {
         dialog.set_extra_child(entry);
         dialog.add_response('cancel', 'Cancel');
         dialog.add_response('save', 'Save');
-        dialog.connect('response', () => {
+        dialog.connect('response', (dialog_, response) => {
+            if (response !== 'save')
+                return;
+
             const key = entry.get_text().trim();
             if (!key)
                 return;
+
             SecretStore.saveApiKey(key)
                 .then(refresh)
                 .catch(notifyError);
