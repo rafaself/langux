@@ -2,6 +2,20 @@
     width: 420px;
 }
 
+.langux-header {
+    spacing: 6px;
+}
+
+.langux-icon-button {
+    border-radius: 8px;
+    padding: 2px 6px;
+}
+
+.langux-icon-button:hover,
+.langux-icon-button:active {
+    background-color: rgba(255, 255, 255, 0.15);
+}
+
 .langux-title {
     font-size: 13px;
     font-weight: bold;
@@ -64,6 +78,30 @@
 
 .langux-result-label {
     color: #f6f7f8;
+}
+
+.langux-detected-label {
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 11px;
+}
+
+.langux-actions-row {
+    spacing: 8px;
+}
+
+.langux-action-button {
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.08);
+    padding: 3px 10px;
+}
+
+.langux-action-button:hover,
+.langux-action-button:active {
+    background-color: rgba(255, 255, 255, 0.15);
+}
+
+.langux-action-button-content {
+    spacing: 6px;
 }
 
 .langux-error {
