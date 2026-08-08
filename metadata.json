@@ -1,0 +1,11 @@
+{
+  "uuid": "org.gnome.shell.extensions.langux",
+  "name": "Langux",
+  "description": "Quick translator for GNOME Shell",
+  "url": "https://github.com/rafaself/langux",
+  "shell-version": [
+    "49"
+  ],
+  "version-name": "0.1.0",
+  "settings-schema": "org.gnome.shell.extensions.langux"
+}

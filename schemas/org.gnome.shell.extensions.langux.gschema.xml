@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.langux"
+          path="/org/gnome/shell/extensions/langux/">
+    <key name="source-language" type="s">
+      <default>'auto'</default>
+      <summary>Source language</summary>
+      <description>The language of the text to translate. The special value 'auto' enables automatic detection.</description>
+    </key>
+    <key name="target-language" type="s">
+      <default>'en'</default>
+      <summary>Target language</summary>
+      <description>The language to translate text into.</description>
+    </key>
+    <key name="open-shortcut" type="as">
+      <default>['&lt;Super&gt;t']</default>
+      <summary>Shortcut to open Langux</summary>
+      <description>Keybinding that toggles the Langux translator popup.</description>
+    </key>
+  </schema>
+</schemalist>
