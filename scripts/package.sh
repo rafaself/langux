@@ -37,9 +37,9 @@ else
 fi
 
 if command -v sha256sum >/dev/null 2>&1; then
-    sha256sum "$ROOT"/dist/langux.zip > "$ROOT"/dist/langux.zip.sha256
+    (cd "$ROOT"/dist && sha256sum langux.zip > langux.zip.sha256)
 elif command -v shasum >/dev/null 2>&1; then
-    shasum -a 256 "$ROOT"/dist/langux.zip > "$ROOT"/dist/langux.zip.sha256
+    (cd "$ROOT"/dist && shasum -a 256 langux.zip > langux.zip.sha256)
 else
     echo "warning: no checksum tool found; skipping dist/langux.zip.sha256" >&2
 fi
