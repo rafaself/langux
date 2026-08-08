@@ -67,7 +67,19 @@ function translateServiceError(status, payload) {
     return new TranslateError(code, message);
 }
 
-export async function translate({text, source, target, cancellable, endpoint = null}) {
+let _endpoint = null;
+
+// Test-only seam (never reachable from the product): allows tests to point the
+// request at a local mock while keeping the shipped extension pinned to the
+// fixed Google endpoint. No environment variable or runtime option can redirect
+// real requests, so the API key is never sent anywhere but Google.
+export const _setTestEndpoint = endpoint => {
+    const previous = _endpoint;
+    _endpoint = endpoint;
+    return previous;
+};
+
+export async function translate({text, source, target, cancellable}) {
     if (!text || !target)
         throw new TranslateError(ErrorCode.MALFORMED, 'Both text and target language are required.');
 
@@ -79,8 +91,7 @@ export async function translate({text, source, target, cancellable, endpoint = n
     if (source && source !== 'auto')
         requestBody.source = source;
 
-    const requestEndpoint = endpoint ?? GLib.getenv('LANGUX_TRANSLATE_ENDPOINT') ?? DEFAULT_ENDPOINT;
-    const message = Soup.Message.new('POST', requestEndpoint);
+    const message = Soup.Message.new('POST', _endpoint ?? DEFAULT_ENDPOINT);
     message.request_headers.replace('X-Goog-Api-Key', apiKey);
     message.request_headers.replace('Content-Type', 'application/json');
     message.set_request_body_from_bytes(
