@@ -1,7 +1,7 @@
 {
   "uuid": "langux@rafaself.github.io",
   "name": "Langux",
-  "description": "Quick translator for GNOME Shell",
+  "description": "Quick translator for GNOME Shell using Google Cloud Translation. Translated text can be copied to the clipboard on explicit user action.",
   "url": "https://github.com/rafaself/langux",
   "shell-version": [
     "49"
