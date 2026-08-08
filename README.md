@@ -32,7 +32,7 @@ cleans up temporary files, and prints the next steps.
 Then enable the extension and restart the session:
 
 ```sh
-gnome-extensions enable org.gnome.shell.extensions.langux
+gnome-extensions enable langux@rafaself.github.io
 ```
 
 Restart the session (log out and back in) or, on X11, press `Alt+F2` and type `r`.
@@ -43,7 +43,7 @@ Restart the session (log out and back in) or, on X11, press `Alt+F2` and type `r
 git clone https://github.com/rafaself/Langux.git
 cd languxa
 scripts/dev-install.sh
-gnome-extensions enable org.gnome.shell.extensions.langux
+gnome-extensions enable langux@rafaself.github.io
 ```
 
 `dev-install.sh` runs `scripts/package.sh`, installs the archive with
@@ -58,7 +58,7 @@ billable billing account), an enabled Translation API, and an API key:
 1. Create a Google Cloud project and enable billing.
 2. Enable the **Cloud Translation API** for the project.
 3. Generate an **API key** (Credentials → Create credentials → API key).
-4. Open Langux settings (`gnome-extensions prefs org.gnome.shell.extensions.langux`
+4. Open Langux settings (`gnome-extensions prefs langux@rafaself.github.io`
    or the gear button in the Langux popup).
 5. Under *Google Cloud*, click **Configure** and paste the key (click **Replace** to
    update later, **Remove** to delete it).
@@ -81,7 +81,7 @@ Google Cloud Translation over HTTPS. Nothing is persisted locally beyond the API
 ## Uninstall
 
 ```bash
-gnome-extensions uninstall org.gnome.shell.extensions.langux
+gnome-extensions uninstall langux@rafaself.github.io
 ```
 
 (Optionally disable first.) The API key stays in GNOME Keyring; remove it from the

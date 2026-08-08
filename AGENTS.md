@@ -10,7 +10,7 @@ accounts, no telemetry, no history. See the epic in issue #1 and implementation 
 
 - `extension.js` — main entry point for the GNOME Shell process.
 - `prefs.js` — GTK4/libadwaita preferences window entry point (`ExtensionPreferences`).
-- `metadata.json` — extension metadata (UUID `org.gnome.shell.extensions.langux`).
+- `metadata.json` — extension metadata (UUID `langux@rafaself.github.io`).
 - `stylesheet.css`, `stylesheet-dark.css` — Shell UI styling (light and dark theme applied by shell; the dark variant is loaded when the theme name contains "dark").
 - `schemas/org.gnome.shell.extensions.langux.gschema.xml` — GSettings schema.
 - `ui/languages.js` — pure language list/helpers (no Shell imports; unit-testable).
@@ -66,7 +66,7 @@ node --input-type=module --check < extension.js
 node --test
 
 # Test the extension in an installed copy
-UUID=org.gnome.shell.extensions.langux
+UUID=langux@rafaself.github.io
 rm -rf ~/.local/share/gnome-shell/extensions/$UUID
 mkdir -p ~/.local/share/gnome-shell/extensions/$UUID/ui ~/.local/share/gnome-shell/extensions/$UUID/services
 cp -r metadata.json extension.js prefs.js stylesheet.css stylesheet-dark.css \
@@ -104,10 +104,10 @@ dbus-run-session -- bash -c '
   export GSETTINGS_BACKEND=memory   # isolate dconf; never writes the real session
   gnome-shell --headless --virtual-monitor 1280x800 > /tmp/langux-shell.log 2>&1 &
   until busctl --user list 2>/dev/null | grep -q org.gnome.Shell; do sleep 0.5; done
-  gnome-extensions enable org.gnome.shell.extensions.langux
-  gnome-extensions info org.gnome.shell.extensions.langux   # must show State: ACTIVE
-  gnome-extensions disable org.gnome.shell.extensions.langux # must show State: INACTIVE
-  gnome-extensions enable org.gnome.shell.extensions.langux  # must stay ACTIVE (no duplicates)
+  gnome-extensions enable langux@rafaself.github.io
+  gnome-extensions info langux@rafaself.github.io   # must show State: ACTIVE
+  gnome-extensions disable langux@rafaself.github.io # must show State: INACTIVE
+  gnome-extensions enable langux@rafaself.github.io  # must stay ACTIVE (no duplicates)
   grep -i "langux" /tmp/langux-shell.log   # no errors
 '
 ```

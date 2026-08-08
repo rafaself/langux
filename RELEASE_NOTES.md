@@ -22,7 +22,7 @@ curl -fsSL https://raw.githubusercontent.com/rafaself/Langux/main/scripts/instal
 Enable and restart your session:
 
 ```sh
-gnome-extensions enable org.gnome.shell.extensions.langux
+gnome-extensions enable langux@rafaself.github.io
 ```
 
 Then configure your Google Cloud API key in the Langux settings window.

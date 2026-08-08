@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-UUID="org.gnome.shell.extensions.langux"
+UUID="langux@rafaself.github.io"
 
 STAGING="$(mktemp -d)"
 trap 'rm -rf "$STAGING"' EXIT

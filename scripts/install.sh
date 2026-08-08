@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-UUID="org.gnome.shell.extensions.langux"
+UUID="langux@rafaself.github.io"
 REPO="${LANGUX_REPO:-rafaself/Langux}"
 TAG="${LANGUX_TAG:-latest}"
 ARCHIVE_NAME="langux.zip"

@@ -1,5 +1,5 @@
 {
-  "uuid": "org.gnome.shell.extensions.langux",
+  "uuid": "langux@rafaself.github.io",
   "name": "Langux",
   "description": "Quick translator for GNOME Shell",
   "url": "https://github.com/rafaself/langux",
