@@ -84,6 +84,10 @@ export function buildApiKeyGroup() {
         dialog.set_extra_child(entry);
         dialog.add_response('cancel', 'Cancel');
         dialog.add_response('save', 'Save');
+        dialog.set_response_enabled('save', false);
+        entry.connect('notify::text', () => {
+            dialog.set_response_enabled('save', entry.get_text().trim().length > 0);
+        });
         dialog.connect('response', (dialog_, response) => {
             if (response !== 'save')
                 return;
