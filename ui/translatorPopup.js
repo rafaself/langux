@@ -324,7 +324,7 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
 
     _translate() {
         const text = this._entry.get_text().trim();
-        if (!text || this._state === TranslatorState.TRANSLATING || this._destroyed)
+        if (!text || this._destroyed)
             return;
 
         const source = this._settings.get_string('source-language');
