@@ -1,3 +1,4 @@
+import Gio from 'gi://Gio';
 import Meta from 'gi://Meta';
 import Shell from 'gi://Shell';
 import St from 'gi://St';
@@ -8,7 +9,6 @@ import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 
 import {TranslatorPopup} from './ui/translatorPopup.js';
 
-const INDICATOR_ICON = 'accessories-dictionary-symbolic';
 const SHORTCUT_BINDING = 'open-shortcut';
 
 export default class LanguxExtension extends Extension {
@@ -17,7 +17,8 @@ export default class LanguxExtension extends Extension {
 
         this._indicator = new PanelMenu.Button(0.0, 'Langux', true);
         this._indicator.add_child(new St.Icon({
-            icon_name: INDICATOR_ICON,
+            gicon: Gio.FileIcon.new(
+                Gio.File.new_for_path(`${this.path}/data/icon.svg`)),
             style_class: 'system-status-icon',
         }));
 

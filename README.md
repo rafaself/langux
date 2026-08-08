@@ -1,5 +1,9 @@
 # Langux
 
+<p align="left">
+  <img src="data/icon.svg" width="64" height="64" alt="Langux icon">
+</p>
+
 Langux is a local-first quick translator for GNOME Shell. Press a shortcut, type or
 paste text, translate it with Google Cloud Translation (Basic v2), copy the result.
 No backend, no accounts, no telemetry, no history.

@@ -12,6 +12,7 @@ accounts, no telemetry, no history. See the epic in issue #1 and implementation 
 - `prefs.js` — GTK4/libadwaita preferences window entry point (`ExtensionPreferences`).
 - `metadata.json` — extension metadata (UUID `langux@rafaself.github.io`).
 - `stylesheet.css`, `stylesheet-dark.css` — Shell UI styling (light and dark theme applied by shell; the dark variant is loaded when the theme name contains "dark").
+- `data/icon.svg` — the Langux icon (fill=currentColor so it adapts to light/dark panel themes); used by the panel indicator and docs.
 - `schemas/org.gnome.shell.extensions.langux.gschema.xml` — GSettings schema.
 - `ui/languages.js` — pure language list/helpers (no Shell imports; unit-testable).
 - `ui/translatorPopup.js` — the translator popup (St/Clutter) and its keyboard-first UX.
@@ -75,6 +76,8 @@ rm -rf ~/.local/share/gnome-shell/extensions/$UUID
 mkdir -p ~/.local/share/gnome-shell/extensions/$UUID/ui ~/.local/share/gnome-shell/extensions/$UUID/services
 cp -r metadata.json extension.js prefs.js stylesheet.css stylesheet-dark.css \
   ~/.local/share/gnome-shell/extensions/$UUID/
+mkdir -p ~/.local/share/gnome-shell/extensions/$UUID/data
+cp data/icon.svg ~/.local/share/gnome-shell/extensions/$UUID/data/
 cp ui/languages.js ui/translatorPopup.js ui/prefsContent.js ui/errorMessages.js \
   ~/.local/share/gnome-shell/extensions/$UUID/ui/
 cp services/secretStore.js services/googleTranslate.js ~/.local/share/gnome-shell/extensions/$UUID/services/

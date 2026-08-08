@@ -8,11 +8,12 @@ cd "$ROOT"
 STAGING="$(mktemp -d)"
 trap 'rm -rf "$STAGING"' EXIT
 
-mkdir -p "$STAGING"/ui "$STAGING"/services "$STAGING"/schemas
+mkdir -p "$STAGING"/ui "$STAGING"/services "$STAGING"/schemas "$STAGING"/data
 cp extension.js prefs.js metadata.json stylesheet.css stylesheet-dark.css "$STAGING"/
 cp ui/*.js "$STAGING"/ui/
 cp services/*.js "$STAGING"/services/
 cp schemas/*.xml "$STAGING"/schemas/
+cp data/icon.svg "$STAGING"/data/
 glib-compile-schemas "$STAGING"/schemas
 
 mkdir -p "$ROOT"/dist
@@ -23,6 +24,7 @@ if command -v gnome-extensions >/dev/null 2>&1; then
     gnome-extensions pack \
         --extra-source="$STAGING/ui" \
         --extra-source="$STAGING/services" \
+        --extra-source="$STAGING/data" \
         --out-dir "$ROOT"/dist \
         --force \
         "$STAGING"
