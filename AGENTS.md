@@ -19,8 +19,9 @@ accounts, no telemetry, no history. See the epic in issue #1 and implementation 
 - `ui/prefsContent.js` — GTK-only preference row builders (no Shell imports).
 - `services/secretStore.js` — libsecret-backed API key storage (no Shell/GTK imports).
 - `services/googleTranslate.js` — Google Cloud Translation Basic v2 client over Soup 3; error-normalizing, cancellable, no Shell/GTK imports.
+- `scripts/` — packaging/install helpers: `package.sh` (dist/langux.zip + checksum), `dev-install.sh`, `install.sh` (release installer that verifies SHA-256).
 - `tests/` — unit tests for pure modules, run with the Node built-in test runner.
-- Planned (later issues): local packaging, install scripts and docs (#7), release artifacts (#8).
+- Planned (later issues): release artifacts for v0.1.0 (#8).
 
 Mandatory reading before changing code: `metadata.json`, `extension.js`, and the issue being
 implemented. Keep files small; add a new module instead of growing existing ones.
@@ -70,11 +71,15 @@ rm -rf ~/.local/share/gnome-shell/extensions/$UUID
 mkdir -p ~/.local/share/gnome-shell/extensions/$UUID/ui ~/.local/share/gnome-shell/extensions/$UUID/services
 cp -r metadata.json extension.js prefs.js stylesheet.css stylesheet-dark.css \
   ~/.local/share/gnome-shell/extensions/$UUID/
-cp ui/languages.js ui/translatorPopup.js ui/prefsContent.js ~/.local/share/gnome-shell/extensions/$UUID/ui/
-cp services/secretStore.js ~/.local/share/gnome-shell/extensions/$UUID/services/
+cp ui/languages.js ui/translatorPopup.js ui/prefsContent.js ui/errorMessages.js \
+  ~/.local/share/gnome-shell/extensions/$UUID/ui/
+cp services/secretStore.js services/googleTranslate.js ~/.local/share/gnome-shell/extensions/$UUID/services/
 cp -r schemas ~/.local/share/gnome-shell/extensions/$UUID/ && \
   rm ~/.local/share/gnome-shell/extensions/$UUID/schemas/gschemas.compiled
 glib-compile-schemas ~/.local/share/gnome-shell/extensions/$UUID/schemas/
+
+# Or package and install the standard way (also what dev-install.sh wraps):
+scripts/package.sh && gnome-extensions install --force dist/langux.zip
 
 # Smoke-test the secret store against a throwaway keyring (isolated HOME,
 # empty-login keyring on a per-session bus; never touches the real keyring):

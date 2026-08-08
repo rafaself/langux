@@ -1,1 +1,3 @@
+# dist — local package output (see scripts/package.sh)
+/dist/
 schemas/gschemas.compiled
