@@ -24,8 +24,9 @@ test('unknown or cancelled codes fall back to the generic message', () => {
     assert.equal(friendlyMessage(null, 'custom fallback'), 'custom fallback');
 });
 
-test('only a missing credential offers the settings path', () => {
-    for (const code of ['unauthorized', 'network', 'quota', 'server', 'malformed', 'cancelled'])
+test('missing credentials and rejected keys offer the settings path', () => {
+    for (const code of ['missing-credential', 'unauthorized'])
+        assert.equal(needsSettingsAction(code), true);
+    for (const code of ['network', 'quota', 'server', 'malformed', 'cancelled'])
         assert.equal(needsSettingsAction(code), false);
-    assert.equal(needsSettingsAction('missing-credential'), true);
 });

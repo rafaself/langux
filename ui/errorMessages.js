@@ -7,7 +7,7 @@ const MESSAGES = {
     'malformed': 'Translation failed.',
 };
 
-export const SETTINGS_ACTION_CODES = Object.freeze(['missing-credential']);
+export const SETTINGS_ACTION_CODES = Object.freeze(['missing-credential', 'unauthorized']);
 
 export function friendlyMessage(code, fallback = 'Translation failed.') {
     return MESSAGES[code] ?? fallback;
