@@ -3,6 +3,10 @@
 }
 
 .langux-header {
+    spacing: 0px;
+}
+
+.langux-header-actions {
     spacing: 6px;
 }
 

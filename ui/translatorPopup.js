@@ -11,7 +11,10 @@ import {friendlyMessage, needsSettingsAction} from './errorMessages.js';
 
 const SWAP_ICON = 'view-refresh-symbolic';
 const DROPDOWN_ICON = 'pan-down-symbolic';
-const SETTINGS_ICON = 'preferences-system-symbolic';
+const SETTINGS_ICON = 'applications-system-symbolic';
+const SETTINGS_HINT = 'Open Langux preferences';
+const CLOSE_ICON = 'window-close-symbolic';
+const CLOSE_HINT = 'Close';
 const COPY_ICON = 'edit-copy-symbolic';
 const TITLE_TEXT = 'Langux';
 const ENTRY_HINT = 'Enter text';
@@ -86,21 +89,7 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
     _buildContent() {
         const content = new St.BoxLayout({vertical: true, style_class: 'langux-content'});
 
-        const headerRow = new St.BoxLayout({style_class: 'langux-header'});
-        headerRow.add_child(new St.Label({
-            text: TITLE_TEXT,
-            style_class: 'langux-title',
-            x_expand: true,
-        }));
-        this._settingsButton = new St.Button({
-            style_class: 'langux-icon-button',
-            child: new St.Icon({icon_name: SETTINGS_ICON, icon_size: 14}),
-            can_focus: true,
-            reactive: true,
-        });
-        this._settingsButton.connect('clicked', () => this._openSettings());
-        headerRow.add_child(this._settingsButton);
-        content.add_child(headerRow);
+        content.add_child(this._buildHeader());
 
         const languageRow = new St.BoxLayout({style_class: 'langux-language-row'});
         this._sourceButton = this._createLanguageButton('langux-source-button');
@@ -161,6 +150,34 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
             can_focus: false,
             style_class: 'langux-footer',
         }));
+    }
+
+    _buildHeader() {
+        const headerRow = new St.BoxLayout({style_class: 'langux-header'});
+        headerRow.add_child(new St.Label({
+            text: TITLE_TEXT,
+            style_class: 'langux-title',
+            x_expand: true,
+        }));
+        const actions = new St.BoxLayout({style_class: 'langux-header-actions'});
+        actions.add_child(this._buildHeaderAction(
+            SETTINGS_ICON, SETTINGS_HINT, () => this._openSettings()));
+        actions.add_child(this._buildHeaderAction(
+            CLOSE_ICON, CLOSE_HINT, () => this.close()));
+        headerRow.add_child(actions);
+        return headerRow;
+    }
+
+    _buildHeaderAction(iconName, hint, onClick) {
+        const button = new St.Button({
+            style_class: 'langux-icon-button',
+            child: new St.Icon({icon_name: iconName, icon_size: 14}),
+            can_focus: true,
+            reactive: true,
+            accessible_name: hint,
+        });
+        button.connect('clicked', onClick);
+        return button;
     }
 
     _createActionButton(text, iconName, onClick) {
