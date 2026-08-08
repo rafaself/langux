@@ -404,7 +404,7 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
         this._clearCopyFeedback();
         this._copyFeedbackId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, COPY_FEEDBACK_MS, () => {
             this._copyFeedbackId = null;
-            this._showAction(COPY_LABEL, false, false);
+            this._showAction(COPY_LABEL, true, false);
             return false;
         });
     }
