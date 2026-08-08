@@ -4,11 +4,6 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 UUID="org.gnome.shell.extensions.langux"
 
-command -v gnome-extensions >/dev/null 2>&1 || {
-    echo "error: gnome-extensions is not available (GNOME Shell is not installed?)" >&2
-    exit 1
-}
-
 STAGING="$(mktemp -d)"
 trap 'rm -rf "$STAGING"' EXIT
 
@@ -20,15 +15,27 @@ cp schemas/*.xml "$STAGING"/schemas/
 glib-compile-schemas "$STAGING"/schemas
 
 mkdir -p "$ROOT"/dist
-# --extra-source includes nested runtime directories, which `pack` skips by
-# default (ui/ and services/ hold all Langux UI and service modules).
-gnome-extensions pack \
-    --extra-source="$STAGING/ui" \
-    --extra-source="$STAGING/services" \
-    --out-dir "$ROOT"/dist \
-    --force \
-    "$STAGING"
-mv "$ROOT"/dist/"$UUID".shell-extension.zip "$ROOT"/dist/langux.zip
+
+if command -v gnome-extensions >/dev/null 2>&1; then
+    # Preferred path: GNOME's own packer. --extra-source includes nested runtime
+    # directories (ui/ and services/), which `pack` skips by default.
+    gnome-extensions pack \
+        --extra-source="$STAGING/ui" \
+        --extra-source="$STAGING/services" \
+        --out-dir "$ROOT"/dist \
+        --force \
+        "$STAGING"
+    mv "$ROOT"/dist/"$UUID".shell-extension.zip "$ROOT"/dist/langux.zip
+else
+    # Fallback for environments without GNOME Shell (e.g. headless CI). Produces
+    # the same whitelisted runtime content.
+    command -v zip >/dev/null 2>&1 || {
+        echo "error: neither gnome-extensions nor zip is available" >&2
+        exit 1
+    }
+    (cd "$STAGING" && zip -qr "$ROOT"/dist/langux.zip .)
+fi
+
 if command -v sha256sum >/dev/null 2>&1; then
     sha256sum "$ROOT"/dist/langux.zip > "$ROOT"/dist/langux.zip.sha256
 elif command -v shasum >/dev/null 2>&1; then
