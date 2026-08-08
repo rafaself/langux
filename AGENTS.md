@@ -9,11 +9,14 @@ accounts, no telemetry, no history. See the epic in issue #1 and implementation 
 ## Repository layout
 
 - `extension.js` — main entry point for the GNOME Shell process.
+- `prefs.js` — GTK4/libadwaita preferences window entry point (`ExtensionPreferences`).
 - `metadata.json` — extension metadata (UUID `org.gnome.shell.extensions.langux`).
 - `stylesheet.css`, `stylesheet-dark.css` — Shell UI styling (light and dark theme applied by shell; the dark variant is loaded when the theme name contains "dark").
 - `schemas/org.gnome.shell.extensions.langux.gschema.xml` — GSettings schema.
 - `ui/languages.js` — pure language list/helpers (no Shell imports; unit-testable).
 - `ui/translatorPopup.js` — the translator popup (St/Clutter) and its keyboard-first UX.
+- `ui/prefsContent.js` — GTK-only preference row builders (no Shell imports).
+- `services/secretStore.js` — libsecret-backed API key storage (no Shell/GTK imports).
 - `tests/` — unit tests for pure modules, run with the Node built-in test runner.
 - Planned (later issues): `prefs.js` (GTK4/libadwaita), service layer (Soup 3).
 
@@ -62,13 +65,24 @@ node --test
 # Test the extension in an installed copy
 UUID=org.gnome.shell.extensions.langux
 rm -rf ~/.local/share/gnome-shell/extensions/$UUID
-mkdir -p ~/.local/share/gnome-shell/extensions/$UUID/ui
-cp -r metadata.json extension.js stylesheet.css stylesheet-dark.css \
+mkdir -p ~/.local/share/gnome-shell/extensions/$UUID/ui ~/.local/share/gnome-shell/extensions/$UUID/services
+cp -r metadata.json extension.js prefs.js stylesheet.css stylesheet-dark.css \
   ~/.local/share/gnome-shell/extensions/$UUID/
-cp ui/languages.js ui/translatorPopup.js ~/.local/share/gnome-shell/extensions/$UUID/ui/
+cp ui/languages.js ui/translatorPopup.js ui/prefsContent.js ~/.local/share/gnome-shell/extensions/$UUID/ui/
+cp services/secretStore.js ~/.local/share/gnome-shell/extensions/$UUID/services/
 cp -r schemas ~/.local/share/gnome-shell/extensions/$UUID/ && \
   rm ~/.local/share/gnome-shell/extensions/$UUID/schemas/gschemas.compiled
 glib-compile-schemas ~/.local/share/gnome-shell/extensions/$UUID/schemas/
+
+# Smoke-test the secret store against a throwaway keyring (isolated HOME,
+# empty-login keyring on a per-session bus; never touches the real keyring):
+#   dbus-run-session -- bash -c '
+#     export XDG_RUNTIME_DIR=$(mktemp -d) HOME=$(mktemp -d)
+#     unset DISPLAY
+#     eval "$(printf "\n" | gnome-keyring-daemon --unlock --components=secrets)"
+#     # then drive services/secretStore.js from a gjs script and/or
+#     secret-tool search --all service google-translation
+#   '
 ```
 
 ## Verification
@@ -102,3 +116,8 @@ re-enable, GSettings defaults verified, schema compiles. Commit messages follow 
 `type(scope): message`, e.g. `feat(indicator): add Langux panel button`; mention the issue
 number when applicable (e.g. `(Closes #3)`). Do not open PRs unless asked; push and close
 the issue at the end.
+
+Note on GTK preferences testing: on this machine `GDK_BACKEND=offscreen` segfaults even on a
+bare `Gtk.Window` (GTK CSS init crash) and there is no X server for a headless run, so
+interactive preference flows are verified manually in a real session. Automated coverage
+stops at: module import/export checks, the keyring smoke above, and static gjs checks.
