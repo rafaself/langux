@@ -75,8 +75,10 @@ Security recommendations:
 
 Langux has no backend and does not collect telemetry or translation history. When
 the user explicitly translates text, it is sent directly from the local machine to
-Google Cloud Translation over HTTPS. Nothing is persisted locally beyond the API key
-(GNOME Keyring); source and translated text are never saved, logged, or stored.
+Google Cloud Translation over HTTPS. Langux does not persist translation input or
+output. Translated text is only written to the system clipboard when the user
+explicitly clicks Copy. Nothing else is stored locally beyond the API key (GNOME
+Keyring); source and translated text are never saved, logged, or stored.
 
 ## Uninstall
 
