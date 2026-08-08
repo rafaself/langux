@@ -15,11 +15,12 @@ accounts, no telemetry, no history. See the epic in issue #1 and implementation 
 - `schemas/org.gnome.shell.extensions.langux.gschema.xml` — GSettings schema.
 - `ui/languages.js` — pure language list/helpers (no Shell imports; unit-testable).
 - `ui/translatorPopup.js` — the translator popup (St/Clutter) and its keyboard-first UX.
+- `ui/errorMessages.js` — pure error-code → user-facing message mapping (no Shell imports; unit-testable).
 - `ui/prefsContent.js` — GTK-only preference row builders (no Shell imports).
 - `services/secretStore.js` — libsecret-backed API key storage (no Shell/GTK imports).
 - `services/googleTranslate.js` — Google Cloud Translation Basic v2 client over Soup 3; error-normalizing, cancellable, no Shell/GTK imports.
 - `tests/` — unit tests for pure modules, run with the Node built-in test runner.
-- Planned (later issues): wiring the popup to the service and copy-to-clipboard (#6-#8).
+- Planned (later issues): local packaging, install scripts and docs (#7), release artifacts (#8).
 
 Mandatory reading before changing code: `metadata.json`, `extension.js`, and the issue being
 implemented. Keep files small; add a new module instead of growing existing ones.

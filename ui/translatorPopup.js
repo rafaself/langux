@@ -1,15 +1,25 @@
 import Clutter from 'gi://Clutter';
+import Gio from 'gi://Gio';
+import GLib from 'gi://GLib';
 import St from 'gi://St';
 
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
+import {translate, ErrorCode} from '../services/googleTranslate.js';
 import {AUTO_LANGUAGE, LANGUAGES, isExplicit, languageLabel, swapLanguages} from './languages.js';
+import {friendlyMessage, needsSettingsAction} from './errorMessages.js';
 
 const SWAP_ICON = 'view-refresh-symbolic';
 const DROPDOWN_ICON = 'pan-down-symbolic';
+const SETTINGS_ICON = 'preferences-system-symbolic';
+const COPY_ICON = 'edit-copy-symbolic';
 const TITLE_TEXT = 'Langux';
 const ENTRY_HINT = 'Type or paste text';
 const FOOTER_HINT = 'Ctrl+Enter to translate';
+const COPY_LABEL = 'Copy';
+const COPIED_LABEL = 'Copied ✓';
+const SETTINGS_LABEL = 'Go to Settings';
+const COPY_FEEDBACK_MS = 1500;
 const ERROR_CLASS = 'langux-error';
 const INSENSITIVE_CLASS = 'langux-swap-insensitive';
 
@@ -26,7 +36,10 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
 
         this._settings = settings;
         this._state = TranslatorState.IDLE;
-        this._onTranslate = null;
+        this._destroyed = false;
+        this._requestSeq = 0;
+        this._cancellable = null;
+        this._lastTranslatedText = null;
 
         this._buildContent();
         this._buildLanguageMenus();
@@ -38,47 +51,56 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
             else
                 this._closeLanguageMenus();
         });
+
+        this.connect('destroy', () => {
+            this._destroyed = true;
+            this._cancelRequest();
+            this._clearCopyFeedback();
+        });
     }
 
     getState() {
         return this._state;
     }
 
-    setLoading() {
-        this._state = TranslatorState.TRANSLATING;
-        this._spinner.visible = true;
-        this._resultLabel.visible = false;
-    }
-
-    setResult(text, detectedLanguage = null) {
-        if (detectedLanguage !== null)
-            global.log(`[langux] detected language: ${detectedLanguage}`);
-        this._state = TranslatorState.SUCCESS;
-        this._spinner.visible = false;
-        this._resultLabel.remove_style_class_name(ERROR_CLASS);
-        this._resultLabel.clutter_text.text = text;
-        this._resultLabel.visible = true;
-    }
-
-    setError(message) {
-        this._state = TranslatorState.ERROR;
-        this._spinner.visible = false;
-        this._resultLabel.add_style_class_name(ERROR_CLASS);
-        this._resultLabel.clutter_text.text = message;
-        this._resultLabel.visible = true;
-    }
-
     destroy() {
         this._closeLanguageMenus();
         this._destroyLanguageMenus();
-        this._onTranslate = null;
         super.destroy();
+    }
+
+    _cancelRequest() {
+        if (this._cancellable) {
+            this._cancellable.cancel();
+            this._cancellable = null;
+        }
+    }
+
+    _clearCopyFeedback() {
+        if (this._copyFeedbackId) {
+            GLib.source_remove(this._copyFeedbackId);
+            this._copyFeedbackId = null;
+        }
     }
 
     _buildContent() {
         const content = new St.BoxLayout({vertical: true, style_class: 'langux-content'});
 
-        content.add_child(new St.Label({text: TITLE_TEXT, style_class: 'langux-title'}));
+        const headerRow = new St.BoxLayout({style_class: 'langux-header'});
+        headerRow.add_child(new St.Label({
+            text: TITLE_TEXT,
+            style_class: 'langux-title',
+            x_expand: true,
+        }));
+        this._settingsButton = new St.Button({
+            style_class: 'langux-icon-button',
+            child: new St.Icon({icon_name: SETTINGS_ICON, icon_size: 14}),
+            can_focus: true,
+            reactive: true,
+        });
+        this._settingsButton.connect('clicked', () => this._openSettings());
+        headerRow.add_child(this._settingsButton);
+        content.add_child(headerRow);
 
         const languageRow = new St.BoxLayout({style_class: 'langux-language-row'});
         this._sourceButton = this._createLanguageButton('langux-source-button');
@@ -117,8 +139,17 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
             y_align: Clutter.ActorAlign.START,
         });
         this._resultLabel.clutter_text.line_wrap = true;
+        this._detectedLabel = new St.Label({style_class: 'langux-detected-label'});
         resultArea.add_child(this._spinner);
         resultArea.add_child(this._resultLabel);
+        resultArea.add_child(this._detectedLabel);
+
+        this._actionRow = new St.BoxLayout({style_class: 'langux-actions-row'});
+        this._copyButton = this._createActionButton(COPY_LABEL, COPY_ICON, () => this._copyResult());
+        this._settingsActionButton = this._createActionButton(SETTINGS_LABEL, SETTINGS_ICON, () => this._openSettings());
+        this._actionRow.add_child(this._copyButton.button);
+        this._actionRow.add_child(this._settingsActionButton.button);
+        resultArea.add_child(this._actionRow);
         content.add_child(resultArea);
 
         this.box.add_child(content);
@@ -129,6 +160,21 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
             can_focus: false,
             style_class: 'langux-footer',
         }));
+    }
+
+    _createActionButton(text, iconName, onClick) {
+        const box = new St.BoxLayout({style_class: 'langux-action-button-content'});
+        const label = new St.Label({text});
+        box.add_child(new St.Icon({icon_name: iconName, icon_size: 12}));
+        box.add_child(label);
+        const button = new St.Button({
+            style_class: 'langux-action-button',
+            child: box,
+            can_focus: true,
+            reactive: true,
+        });
+        button.connect('clicked', onClick);
+        return {button, label};
     }
 
     _createLanguageButton(styleClass) {
@@ -278,9 +324,95 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
 
     _translate() {
         const text = this._entry.get_text().trim();
-        if (!text || this._state === TranslatorState.TRANSLATING || !this._onTranslate)
+        if (!text || this._state === TranslatorState.TRANSLATING || this._destroyed)
             return;
-        this._onTranslate(text);
+
+        const source = this._settings.get_string('source-language');
+        const target = this._settings.get_string('target-language');
+
+        this._requestSeq++;
+        this._cancelRequest();
+        this._cancellable = new Gio.Cancellable();
+        const seq = this._requestSeq;
+
+        this.setLoading();
+        translate({text, source, target, cancellable: this._cancellable})
+            .then(result => {
+                if (seq !== this._requestSeq || this._destroyed)
+                    return;
+                this.setResult(result);
+            })
+            .catch(error => {
+                if (seq !== this._requestSeq || this._destroyed)
+                    return;
+                if (error?.code === ErrorCode.CANCELLED)
+                    return;
+                this.setError(error);
+            });
+    }
+
+    setLoading() {
+        this._state = TranslatorState.TRANSLATING;
+        this._spinner.visible = true;
+        this._resultLabel.visible = false;
+        this._detectedLabel.visible = false;
+        this._showAction(COPY_LABEL, false, false);
+    }
+
+    setResult(result) {
+        this._state = TranslatorState.SUCCESS;
+        this._lastTranslatedText = result.text;
+        this._spinner.visible = false;
+        this._resultLabel.remove_style_class_name(ERROR_CLASS);
+        this._resultLabel.clutter_text.text = result.text;
+        this._resultLabel.visible = true;
+
+        const detected = result.detectedSourceLanguage;
+        if (detected && detected !== AUTO_LANGUAGE) {
+            this._detectedLabel.set_text(`Detected: ${languageLabel(detected)}`);
+            this._detectedLabel.visible = true;
+        } else {
+            this._detectedLabel.visible = false;
+        }
+
+        this._showAction(COPY_LABEL, true, false);
+        this._focusEntry();
+    }
+
+    setError(error) {
+        this._state = TranslatorState.ERROR;
+        this._spinner.visible = false;
+        this._resultLabel.add_style_class_name(ERROR_CLASS);
+        this._resultLabel.clutter_text.text = friendlyMessage(error?.code);
+        this._resultLabel.visible = true;
+        this._detectedLabel.visible = false;
+        this._showAction(COPY_LABEL, false, needsSettingsAction(error?.code));
+    }
+
+    _openSettings() {
+        if (this.onOpenSettings)
+            this.onOpenSettings();
+    }
+
+    _copyResult() {
+        if (!this._lastTranslatedText)
+            return;
+        St.Clipboard.get_default().setText(
+            St.ClipboardType.CLIPBOARD,
+            this._lastTranslatedText);
+        this._showAction(COPIED_LABEL, true, false);
+        this._clearCopyFeedback();
+        this._copyFeedbackId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, COPY_FEEDBACK_MS, () => {
+            this._copyFeedbackId = null;
+            this._showAction(COPY_LABEL, false, false);
+            return false;
+        });
+    }
+
+    _showAction(copyLabel, copyVisible, settingsVisible) {
+        this._copyButton.button.visible = copyVisible;
+        this._settingsActionButton.button.visible = settingsVisible;
+        this._copyButton.label.set_text(copyLabel);
     }
 
     _focusEntry() {
