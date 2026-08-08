@@ -17,8 +17,9 @@ accounts, no telemetry, no history. See the epic in issue #1 and implementation 
 - `ui/translatorPopup.js` — the translator popup (St/Clutter) and its keyboard-first UX.
 - `ui/prefsContent.js` — GTK-only preference row builders (no Shell imports).
 - `services/secretStore.js` — libsecret-backed API key storage (no Shell/GTK imports).
+- `services/googleTranslate.js` — Google Cloud Translation Basic v2 client over Soup 3; error-normalizing, cancellable, no Shell/GTK imports.
 - `tests/` — unit tests for pure modules, run with the Node built-in test runner.
-- Planned (later issues): `prefs.js` (GTK4/libadwaita), service layer (Soup 3).
+- Planned (later issues): wiring the popup to the service and copy-to-clipboard (#6-#8).
 
 Mandatory reading before changing code: `metadata.json`, `extension.js`, and the issue being
 implemented. Keep files small; add a new module instead of growing existing ones.
