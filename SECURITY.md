@@ -20,7 +20,7 @@ Google Cloud Translation when the user explicitly asks for a translation.
 
 Please report security issues privately rather than in a public issue:
 
-1. Go to https://github.com/rafaself/Langux/security/advisories and create a
+1. Go to https://github.com/rafaself/langux/security/advisories and create a
    private security advisory describing the issue.
 2. Include the affected version, a minimal reproduction, and the impact you observed.
 3. If private reporting is unavailable on the repository, open a regular issue with

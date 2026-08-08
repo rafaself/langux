@@ -41,7 +41,7 @@ Restart the session (log out and back in) or, on X11, press `Alt+F2` and type `r
 
 ```bash
 git clone https://github.com/rafaself/langux.git
-cd languxa
+cd langux
 scripts/dev-install.sh
 gnome-extensions enable langux@rafaself.github.io
 ```
