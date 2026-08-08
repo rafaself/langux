@@ -24,6 +24,8 @@ jobs:
           for f in extension.js prefs.js ui/*.js services/*.js; do
             node --input-type=module --check < "$f"
           done
+      - name: Check GNOME runtime API surface (best-effort)
+        run: scripts/check-runtime.sh
       - name: Package extension
         run: scripts/package.sh
       - name: Verify archive and checksum

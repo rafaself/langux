@@ -1,0 +1,136 @@
+#!/usr/bin/env bash
+set -uo pipefail
+
+# Headless GNOME-runtime API-surface probe for the APIs Langux actually uses.
+# Catches the class of bugs that pure unit tests (node --test) cannot: wrong
+# method spellings on introspected C libraries (Gtk.Box.add vs Gtk.Box.append
+# in GTK4) and resource:/// import paths that don't resolve at runtime.
+#
+# Result lines:  RHECK: <check> OK|SKIP|FAIL
+#   SKIP      - a prerequisite typelib/gresource isn't installed here (fine).
+#   FAIL      - the check ran against the real runtime and came out wrong.
+# Exit code is nonzero if any FAIL is emitted.
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT"
+
+FAILURES=0
+
+if ! command -v gjs >/dev/null 2>&1; then
+    echo "RHECK: runtime probe SKIP (gjs not installed)"
+    echo "runtime check result: 0 failure(s)"
+    exit 0
+fi
+
+typelib_exists() { # $1 = name like "Gtk-4.0"
+    local name="$1" dir
+    for dir in \
+        /usr/lib/girepository-1.0 \
+        /usr/lib64/girepository-1.0 \
+        /usr/lib/*/girepository-1.0 \
+        /usr/local/lib/girepository-1.0; do
+        [ -f "$dir/$name.typelib" ] && return 0
+    done
+    return 1
+}
+
+emitok() { echo "RHECK: $1 OK"; }
+emit_skip() { echo "RHECK: $1 SKIP"; }
+
+probe_js() { # $1 = label, $2 = gjs file
+    local label="$1" file="$2" out rc
+    out="$(timeout 30 gjs -m "$file" 2>&1)"
+    rc=$?
+    if grep -q 'RHECK: FAIL' <<<"$out"; then
+        FAILURES=$((FAILURES + 1))
+        echo "$out"
+        return 1
+    fi
+    if [ "$rc" -ne 0 ]; then
+        FAILURES=$((FAILURES + 1))
+        echo "RHECK: $label FAIL (gjs exited $rc)"
+        echo "$out" | tail -4 | sed 's/^/    /'
+        return 1
+    fi
+    if grep -q 'RHECK:' <<<"$out"; then
+        echo "$out"
+    else
+        echo "RHECK: $label OK"
+    fi
+}
+
+# --- GTK4 / libadwaita (used by prefsContent.js) -------------------------------
+if typelib_exists "Gtk-4.0" && typelib_exists "Adw-1"; then
+    GTK_CHECK="$(mktemp --suffix=.mjs)"
+    cat > "$GTK_CHECK" <<'EOF'
+import Gtk from 'gi://Gtk?version=4.0';
+import Adw from 'gi://Adw?version=1';
+
+const check = (name, cond) => console.log(`RHECK: ${name} ${cond ? 'OK' : 'FAIL'}`);
+check('Gtk.Box.append exists', Object.getOwnPropertyNames(Gtk.Box.prototype).includes('append'));
+check('Gtk.Box has no add()', !Object.getOwnPropertyNames(Gtk.Box.prototype).includes('add'));
+check('Adw.PreferencesGroup.add exists', Object.getOwnPropertyNames(Adw.PreferencesGroup.prototype).includes('add'));
+check('Adw.PreferencesPage.add exists', Object.getOwnPropertyNames(Adw.PreferencesPage.prototype).includes('add'));
+check('Adw.PreferencesWindow.add exists', Object.getOwnPropertyNames(Adw.PreferencesWindow.prototype).includes('add'));
+check('Adw.MessageDialog.add_response exists', Object.getOwnPropertyNames(Adw.MessageDialog.prototype).includes('add_response'));
+EOF
+    probe_js "GTK4/libadwaita surface" "$GTK_CHECK"
+    rm -f "$GTK_CHECK"
+else
+    echo "RHECK: GTK4/libadwaita surface SKIP (Gtk-4.0/Adw-1 typelibs absent)"
+fi
+
+# --- libsecret / libsoup -------------------------------------------------------
+if typelib_exists "Secret-1" && typelib_exists "Soup-3.0"; then
+    SVC_CHECK="$(mktemp --suffix=.mjs)"
+    cat > "$SVC_CHECK" <<'EOF'
+import Secret from 'gi://Secret';
+import Soup from 'gi://Soup?version=3.0';
+
+const check = (name, cond) => console.log(`RHECK: ${name} ${cond ? 'OK' : 'FAIL'}`);
+check('libsecret password_lookup callable', typeof Secret.password_lookup === 'function');
+check('libsoup3 Session constructible', typeof Soup.Session === 'function');
+EOF
+    probe_js "service libs" "$SVC_CHECK"
+    rm -f "$SVC_CHECK"
+else
+    echo "RHECK: service libs SKIP (Secret-1/Soup-3.0 typelibs absent)"
+fi
+
+# --- prefs.js resource path resolves at runtime -------------------------------
+PREFS_CHECK="$(mktemp --suffix=.mjs)"
+cat > "$PREFS_CHECK" <<'EOF'
+import Gio from 'gi://Gio';
+import system from 'system';
+
+const candidates = [
+    '/usr/share/gnome-shell/org.gnome.Shell.Extensions.src.gresource',
+    '/usr/share/gnome-shell/org.gnome.Shell.Extensions.gresource',
+];
+const path = '/org/gnome/Shell/Extensions/js/extensions/prefs.js';
+
+for (const file of candidates) {
+    let resource;
+    try {
+        resource = Gio.Resource.load(file);
+    } catch (err) {
+        continue;
+    }
+    try {
+        if (resource.lookup_data(path, Gio.ResourceLookupFlags.NONE))
+            console.log('RHECK: prefs.js resource path OK');
+        else
+            console.log('RHECK: prefs.js resource path FAIL');
+        system.exit(0);
+    } catch (err) {
+        console.log('RHECK: prefs.js resource path FAIL');
+        system.exit(1);
+    }
+}
+console.log('RHECK: prefs.js resource path SKIP (no gnome-shell gresource found)');
+EOF
+probe_js "prefs.js resource path" "$PREFS_CHECK"
+rm -f "$PREFS_CHECK"
+
+echo "runtime check result: $FAILURES failure(s)"
+[ "$FAILURES" -eq 0 ]

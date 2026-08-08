@@ -62,6 +62,10 @@ gsettings --schemadir schemas/ get org.gnome.shell.extensions.langux source-lang
 # JavaScript syntax check (gjs --check was removed in gjs 1.85+)
 node --input-type=module --check < extension.js
 
+# Headless GNOME-runtime API-surface probe (catches Gtk.Box.append-style
+# spelling bugs and resource:/// paths that pure unit tests cannot see)
+scripts/check-runtime.sh
+
 # Node's built-in test runner for the pure ui/ modules (no npm dependencies)
 node --test
 
