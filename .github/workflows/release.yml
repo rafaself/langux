@@ -1,0 +1,30 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Package extension
+        run: scripts/package.sh
+      - name: Verify archive and checksum
+        run: |
+          test -f dist/langux.zip
+          test -f dist/langux.zip.sha256
+          sha256sum -c dist/langux.zip.sha256
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/langux.zip
+            dist/langux.zip.sha256
+          body_path: RELEASE_NOTES.md
+          fail_on_unmatched_files: true
