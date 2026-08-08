@@ -397,7 +397,7 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
     _copyResult() {
         if (!this._lastTranslatedText)
             return;
-        St.Clipboard.get_default().setText(
+        St.Clipboard.get_default().set_text(
             St.ClipboardType.CLIPBOARD,
             this._lastTranslatedText);
         this._showAction(COPIED_LABEL, true, false);
