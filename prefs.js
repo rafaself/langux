@@ -1,6 +1,6 @@
 import Adw from 'gi://Adw';
 
-import {ExtensionPreferences} from 'resource:///org/gnome/shell/extensions/prefs.js';
+import {ExtensionPreferences} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
 import {buildApiKeyGroup, buildTranslationGroup} from './ui/prefsContent.js';
 
