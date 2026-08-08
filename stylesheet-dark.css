@@ -3,6 +3,10 @@
 }
 
 .langux-header {
+    spacing: 0px;
+}
+
+.langux-header-actions {
     spacing: 6px;
 }
 
@@ -48,7 +52,11 @@
 .langux-swap-button {
     border-radius: 8px;
     background-color: rgba(255, 255, 255, 0.08);
-    padding: 3px 8px;
+    padding: 2px 8px;
+}
+
+.langux-swap-arrows {
+    spacing: 0px;
 }
 
 .langux-swap-button:hover,

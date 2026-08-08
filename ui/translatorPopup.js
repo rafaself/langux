@@ -9,17 +9,22 @@ import {translate, ErrorCode} from '../services/googleTranslate.js';
 import {AUTO_LANGUAGE, LANGUAGES, isExplicit, languageLabel, swapLanguages} from './languages.js';
 import {friendlyMessage, needsSettingsAction} from './errorMessages.js';
 
-const SWAP_ICON = 'view-refresh-symbolic';
+const SWAP_ARROW_RIGHT = 'go-next-symbolic';
+const SWAP_ARROW_LEFT = 'go-previous-symbolic';
 const DROPDOWN_ICON = 'pan-down-symbolic';
-const SETTINGS_ICON = 'preferences-system-symbolic';
+const SETTINGS_ICON = 'applications-system-symbolic';
+const SETTINGS_HINT = 'Open Langux preferences';
+const CLOSE_ICON = 'window-close-symbolic';
+const CLOSE_HINT = 'Close';
 const COPY_ICON = 'edit-copy-symbolic';
 const TITLE_TEXT = 'Langux';
-const ENTRY_HINT = 'Type or paste text';
+const ENTRY_HINT = 'Enter text';
 const FOOTER_HINT = 'Ctrl+Enter to translate';
 const COPY_LABEL = 'Copy';
 const COPIED_LABEL = 'Copied ✓';
 const SETTINGS_LABEL = 'Go to Settings';
 const COPY_FEEDBACK_MS = 1500;
+const POPUP_WIDTH = 420;
 const ERROR_CLASS = 'langux-error';
 const INSENSITIVE_CLASS = 'langux-swap-insensitive';
 
@@ -35,6 +40,7 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
         super(sourceActor, 0.5, St.Side.TOP);
 
         this._settings = settings;
+        this._settingsChangedId = null;
         this._state = TranslatorState.IDLE;
         this._destroyed = false;
         this._requestSeq = 0;
@@ -44,6 +50,11 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
         this._buildContent();
         this._buildLanguageMenus();
         this._refreshLanguages();
+
+        this._settingsChangedId = this._settings.connect('changed', (settings, key) => {
+            if (key === 'source-language' || key === 'target-language')
+                this._refreshLanguages();
+        });
 
         this.connect('open-state-changed', (menu, open) => {
             if (open)
@@ -66,6 +77,10 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
     destroy() {
         this._closeLanguageMenus();
         this._destroyLanguageMenus();
+        if (this._settingsChangedId !== null) {
+            this._settings.disconnect(this._settingsChangedId);
+            this._settingsChangedId = null;
+        }
         super.destroy();
     }
 
@@ -86,21 +101,7 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
     _buildContent() {
         const content = new St.BoxLayout({vertical: true, style_class: 'langux-content'});
 
-        const headerRow = new St.BoxLayout({style_class: 'langux-header'});
-        headerRow.add_child(new St.Label({
-            text: TITLE_TEXT,
-            style_class: 'langux-title',
-            x_expand: true,
-        }));
-        this._settingsButton = new St.Button({
-            style_class: 'langux-icon-button',
-            child: new St.Icon({icon_name: SETTINGS_ICON, icon_size: 14}),
-            can_focus: true,
-            reactive: true,
-        });
-        this._settingsButton.connect('clicked', () => this._openSettings());
-        headerRow.add_child(this._settingsButton);
-        content.add_child(headerRow);
+        content.add_child(this._buildHeader());
 
         const languageRow = new St.BoxLayout({style_class: 'langux-language-row'});
         this._sourceButton = this._createLanguageButton('langux-source-button');
@@ -115,8 +116,8 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
             style_class: 'langux-entry',
             hint_text: ENTRY_HINT,
             can_focus: true,
-            track_hover: true,
             x_expand: true,
+            width: POPUP_WIDTH,
         });
         this._entry.clutter_text.max_length = 4096;
         this._entry.clutter_text.single_line_mode = false;
@@ -164,6 +165,34 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
         }));
     }
 
+    _buildHeader() {
+        const headerRow = new St.BoxLayout({style_class: 'langux-header'});
+        headerRow.add_child(new St.Label({
+            text: TITLE_TEXT,
+            style_class: 'langux-title',
+            x_expand: true,
+        }));
+        const actions = new St.BoxLayout({style_class: 'langux-header-actions'});
+        actions.add_child(this._buildHeaderAction(
+            SETTINGS_ICON, SETTINGS_HINT, () => this._openSettings()));
+        actions.add_child(this._buildHeaderAction(
+            CLOSE_ICON, CLOSE_HINT, () => this.close()));
+        headerRow.add_child(actions);
+        return headerRow;
+    }
+
+    _buildHeaderAction(iconName, hint, onClick) {
+        const button = new St.Button({
+            style_class: 'langux-icon-button',
+            child: new St.Icon({icon_name: iconName, icon_size: 14}),
+            can_focus: true,
+            reactive: true,
+            accessible_name: hint,
+        });
+        button.connect('clicked', onClick);
+        return button;
+    }
+
     _createActionButton(text, iconName, onClick) {
         const box = new St.BoxLayout({style_class: 'langux-action-button-content'});
         const label = new St.Label({text});
@@ -204,9 +233,12 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
     }
 
     _createSwapButton() {
+        const arrows = new St.BoxLayout({vertical: true, style_class: 'langux-swap-arrows'});
+        arrows.add_child(new St.Icon({icon_name: SWAP_ARROW_RIGHT, icon_size: 12}));
+        arrows.add_child(new St.Icon({icon_name: SWAP_ARROW_LEFT, icon_size: 12}));
         const button = new St.Button({
             style_class: 'langux-swap-button',
-            child: new St.Icon({icon_name: SWAP_ICON, icon_size: 12}),
+            child: arrows,
             can_focus: true,
             reactive: true,
         });
