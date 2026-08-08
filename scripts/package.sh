@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 UUID="langux@rafaself.github.io"
+cd "$ROOT"
 
 STAGING="$(mktemp -d)"
 trap 'rm -rf "$STAGING"' EXIT
