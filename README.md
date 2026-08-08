@@ -22,7 +22,7 @@ version validated on.
 ## Install from a GitHub Release
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/rafaself/Langux/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/rafaself/langux/main/scripts/install.sh | bash
 ```
 
 The installer downloads the latest `langux.zip` and its SHA-256 checksum, verifies
@@ -40,7 +40,7 @@ Restart the session (log out and back in) or, on X11, press `Alt+F2` and type `r
 ## Local development installation
 
 ```bash
-git clone https://github.com/rafaself/Langux.git
+git clone https://github.com/rafaself/langux.git
 cd languxa
 scripts/dev-install.sh
 gnome-extensions enable langux@rafaself.github.io

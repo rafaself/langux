@@ -16,7 +16,7 @@ or paste text, translate with Google Cloud Translation Basic v2, copy the result
 ## Install
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/rafaself/Langux/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/rafaself/langux/main/scripts/install.sh | bash
 ```
 
 Enable and restart your session:
