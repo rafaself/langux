@@ -98,7 +98,7 @@ export function buildApiKeyGroup() {
     const replaceButton = new Gtk.Button({label: 'Replace', css_classes: ['flat']});
     const removeButton = new Gtk.Button({label: 'Remove', css_classes: ['flat']});
 
-    const buttons = new Gtk.Box({orientation: Gtk.Orientation.HORIZONTAL, spacing: 6});
+    const buttons = new Gtk.Box({orientation: Gtk.Orientation.HORIZONTAL, spacing: 8});
     buttons.append(configureButton);
     buttons.append(replaceButton);
     buttons.append(removeButton);

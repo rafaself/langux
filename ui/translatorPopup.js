@@ -148,6 +148,11 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
 
     _buildContent() {
         const content = new St.BoxLayout({vertical: true, style_class: 'langux-content'});
+        const appContent = new St.BoxLayout({
+            vertical: true,
+            style_class: 'langux-app-content',
+            x_expand: true,
+        });
 
         content.add_child(this._buildHeader());
 
@@ -158,7 +163,7 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
         languageRow.add_child(this._sourceButton.button);
         languageRow.add_child(this._swapButton);
         languageRow.add_child(this._targetButton.button);
-        content.add_child(languageRow);
+        appContent.add_child(languageRow);
 
         this._entry = new St.Entry({
             style_class: 'langux-entry',
@@ -174,9 +179,9 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
             'text-changed',
             () => this._controller?.setText(this._entry.get_text()));
         this._entry.connect('key-press-event', this._onEntryKeyPress.bind(this));
-        content.add_child(this._entry);
+        appContent.add_child(this._entry);
 
-        content.add_child(new St.Widget({style_class: 'langux-separator'}));
+        appContent.add_child(new St.Widget({style_class: 'langux-separator'}));
 
         const resultArea = new St.BoxLayout({
             vertical: true,
@@ -211,7 +216,8 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
         this._actionRow.add_child(this._copyButton.button);
         this._showAction(COPY_LABEL, false);
         resultArea.add_child(this._actionRow);
-        content.add_child(resultArea);
+        appContent.add_child(resultArea);
+        content.add_child(appContent);
 
         this.box.add_child(content);
     }
@@ -235,7 +241,7 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
     _buildHeaderAction(iconName, hint, onClick) {
         const button = new St.Button({
             style_class: 'langux-icon-button',
-            child: new St.Icon({icon_name: iconName, icon_size: 14}),
+            child: new St.Icon({icon_name: iconName, icon_size: 20}),
             can_focus: true,
             reactive: true,
             accessible_name: hint,
@@ -266,7 +272,7 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
             x_expand: true,
             x_align: Clutter.ActorAlign.START,
         });
-        const chevron = new St.Icon({icon_name: DROPDOWN_ICON, icon_size: 10});
+        const chevron = new St.Icon({icon_name: DROPDOWN_ICON, icon_size: 12});
         const child = new St.BoxLayout({style_class: 'langux-language-button-content'});
         child.add_child(label);
         child.add_child(chevron);
