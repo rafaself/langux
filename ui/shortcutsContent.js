@@ -82,7 +82,7 @@ export function buildShortcutsGroup({settings, window, group: parentGroup = null
         subtitle: 'Keyboard shortcuts and translator actions',
     });
     const showButton = new Gtk.Button({
-        label: 'View',
+        label: 'Show',
         css_classes: ['flat'],
         valign: Gtk.Align.CENTER,
     });
