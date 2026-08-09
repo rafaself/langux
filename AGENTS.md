@@ -12,7 +12,7 @@ accounts, no telemetry, no history. See the epic in issue #1 and implementation 
 - `prefs.js` — GTK4/libadwaita preferences window entry point (`ExtensionPreferences`).
 - `metadata.json` — extension metadata (UUID `langux@rafaself.github.io`).
 - `stylesheet.css`, `stylesheet-dark.css` — Shell UI styling (light and dark theme applied by shell; the dark variant is loaded when the theme name contains "dark").
-- `data/icon.svg` — the Langux icon (fill=currentColor so it adapts to light/dark panel themes); used by the panel indicator and docs.
+- `data/icon.svg` — the Langux icon, dark glyph (`#24292f`) for the light theme and docs; `data/icon-light.svg` — the light glyph (`#f6f7f8`) for the dark theme. The panel indicator picks the matching file via `Main.getStyleVariant()` (see `extension.js`) and swaps it when the color scheme changes.
 - `schemas/org.gnome.shell.extensions.langux.gschema.xml` — GSettings schema.
 - `ui/languages.js` — pure language list/helpers (no Shell imports; unit-testable).
 - `ui/translatorPopup.js` — the translator popup (St/Clutter) and its keyboard-first UX.
@@ -77,7 +77,7 @@ mkdir -p ~/.local/share/gnome-shell/extensions/$UUID/ui ~/.local/share/gnome-she
 cp -r metadata.json extension.js prefs.js stylesheet.css stylesheet-dark.css \
   ~/.local/share/gnome-shell/extensions/$UUID/
 mkdir -p ~/.local/share/gnome-shell/extensions/$UUID/data
-cp data/icon.svg ~/.local/share/gnome-shell/extensions/$UUID/data/
+cp data/icon.svg data/icon-light.svg ~/.local/share/gnome-shell/extensions/$UUID/data/
 cp ui/languages.js ui/translatorPopup.js ui/prefsContent.js ui/errorMessages.js \
   ~/.local/share/gnome-shell/extensions/$UUID/ui/
 cp services/secretStore.js services/googleTranslate.js ~/.local/share/gnome-shell/extensions/$UUID/services/

@@ -13,7 +13,7 @@ cp extension.js prefs.js metadata.json stylesheet.css stylesheet-dark.css "$STAG
 cp ui/*.js "$STAGING"/ui/
 cp services/*.js "$STAGING"/services/
 cp schemas/*.xml "$STAGING"/schemas/
-cp data/icon.svg "$STAGING"/data/
+cp data/icon.svg data/icon-light.svg "$STAGING"/data/
 glib-compile-schemas "$STAGING"/schemas
 
 mkdir -p "$ROOT"/dist
