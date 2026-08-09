@@ -46,6 +46,7 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
         this._requestSeq = 0;
         this._cancellable = null;
         this._lastTranslatedText = null;
+        this._focusEntryId = null;
 
         this._buildContent();
         this._buildLanguageMenus();
@@ -58,7 +59,7 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
 
         this.connect('open-state-changed', (menu, open) => {
             if (open)
-                this._focusEntry();
+                this._focusEntryLater();
             else
                 this._closeLanguageMenus();
         });
@@ -77,6 +78,10 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
     destroy() {
         this._closeLanguageMenus();
         this._destroyLanguageMenus();
+        if (this._focusEntryId !== null) {
+            GLib.source_remove(this._focusEntryId);
+            this._focusEntryId = null;
+        }
         if (this._settingsChangedId !== null) {
             this._settings.disconnect(this._settingsChangedId);
             this._settingsChangedId = null;
@@ -454,5 +459,16 @@ const button = new St.Button({
 
     _focusEntry() {
         this._entry.clutter_text.grab_key_focus();
+    }
+
+    _focusEntryLater() {
+        if (this._focusEntryId !== null)
+            return;
+        this._focusEntryId = GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
+            this._focusEntryId = null;
+            if (this.isOpen)
+                this._focusEntry();
+            return GLib.SOURCE_REMOVE;
+        });
     }
 }
