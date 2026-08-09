@@ -27,6 +27,7 @@ const COPY_FEEDBACK_MS = 1500;
 const POPUP_WIDTH = 420;
 const ERROR_CLASS = 'langux-error';
 const INSENSITIVE_CLASS = 'langux-swap-insensitive';
+const COPY_DISABLED_CLASS = 'langux-copy-disabled';
 
 export const TranslatorState = Object.freeze({
     IDLE: 'idle',
@@ -176,7 +177,11 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
 
         content.add_child(new St.Widget({style_class: 'langux-separator'}));
 
-        const resultArea = new St.BoxLayout({vertical: true, style_class: 'langux-result-area'});
+        const resultArea = new St.BoxLayout({
+            vertical: true,
+            style_class: 'langux-result-area',
+            x_expand: true,
+        });
         this._spinner = new St.Widget({
             style_class: 'view-spinner',
             layout_manager: new Clutter.BinLayout(),
@@ -196,9 +201,14 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
         resultArea.add_child(this._resultLabel);
         resultArea.add_child(this._detectedLabel);
 
-        this._actionRow = new St.BoxLayout({style_class: 'langux-actions-row'});
+        this._actionRow = new St.BoxLayout({
+            style_class: 'langux-actions-row',
+            x_expand: true,
+        });
         this._copyButton = this._createActionButton(COPY_LABEL, COPY_ICON, () => this._copyResult());
+        this._actionRow.add_child(new St.Widget({x_expand: true}));
         this._actionRow.add_child(this._copyButton.button);
+        this._showAction(COPY_LABEL, false);
         resultArea.add_child(this._actionRow);
         content.add_child(resultArea);
 
@@ -438,7 +448,8 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
             this._detectedLabel.visible = false;
         }
 
-        this._showAction(COPY_LABEL, true);
+        const canCopy = typeof result?.text === 'string' && result.text.length > 0;
+        this._showAction(COPY_LABEL, canCopy);
         this._focusEntry();
     }
 
@@ -487,8 +498,14 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
         });
     }
 
-    _showAction(copyLabel, copyVisible) {
-        this._copyButton.button.visible = copyVisible;
+    _showAction(copyLabel, copyEnabled) {
+        this._copyButton.button.visible = true;
+        this._copyButton.button.reactive = copyEnabled;
+        this._copyButton.button.can_focus = copyEnabled;
+        if (copyEnabled)
+            this._copyButton.button.remove_style_class_name(COPY_DISABLED_CLASS);
+        else
+            this._copyButton.button.add_style_class_name(COPY_DISABLED_CLASS);
         this._copyButton.label.set_text(copyLabel);
     }
 

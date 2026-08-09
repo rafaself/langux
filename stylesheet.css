@@ -106,6 +106,10 @@
     spacing: 8px;
 }
 
+.langux-copy-disabled {
+    opacity: 0.45;
+}
+
 .langux-action-button {
     border-radius: 8px;
     background-color: rgba(0, 0, 0, 0.05);
