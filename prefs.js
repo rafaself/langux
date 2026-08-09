@@ -34,7 +34,7 @@ export default class LanguxPreferences extends ExtensionPreferences {
         const page = new Adw.PreferencesPage();
         page.add(buildTranslationGroup(settings));
         page.add(buildApiKeyGroup());
-        const updatesAboutGroup = new Adw.PreferencesGroup({title: 'Updates & About'});
+        const updatesAboutGroup = new Adw.PreferencesGroup({title: 'More'});
         buildUpdatesGroup({
             currentVersion: this.metadata['version-name'],
             window,
