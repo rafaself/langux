@@ -1,6 +1,8 @@
 import Adw from 'gi://Adw';
 import Gtk from 'gi://Gtk';
 
+import {buildDialogContent, createHeaderDialog} from './dialogContent.js';
+
 const MODIFIER_LABELS = {
     Alt: 'Alt',
     Control: 'Ctrl',
@@ -50,7 +52,7 @@ function buildShortcutRows(settings) {
     ];
     const group = new Adw.PreferencesGroup({
         title: 'Shortcuts and actions',
-        width_request: 520,
+        width_request: 620,
     });
 
     for (const [action, command] of shortcuts) {
@@ -68,14 +70,15 @@ function buildShortcutRows(settings) {
 }
 
 function showShortcutsDialog(settings, window) {
-    const dialog = new Adw.MessageDialog({
-        heading: 'Langux shortcuts',
-        body: 'Keyboard shortcuts and available translator actions.',
-        body_use_markup: false,
+    const dialog = createHeaderDialog({
+        title: 'Langux shortcuts',
+        contentWidth: 680,
+        content: buildDialogContent({
+            body: 'Keyboard shortcuts and available translator actions.',
+            child: buildShortcutRows(settings),
+        }),
     });
-    dialog.set_extra_child(buildShortcutRows(settings));
-    dialog.set_transient_for(window);
-    dialog.present();
+    dialog.present(window);
 }
 
 export function buildShortcutsGroup({settings, window, group: parentGroup = null}) {

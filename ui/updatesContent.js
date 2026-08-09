@@ -3,6 +3,7 @@ import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk';
 
 import {UpdateChecker, UpdateErrorCode} from '../services/updateChecker.js';
+import {buildDialogContent, createHeaderDialog} from './dialogContent.js';
 import {UPDATE_PAGE_URL} from './updateInfo.js';
 
 export function buildUpdatesGroup({currentVersion, window, group: parentGroup = null}) {
@@ -32,31 +33,33 @@ export function buildUpdatesGroup({currentVersion, window, group: parentGroup = 
     function presentDialog(dialog) {
         if (disposed)
             return;
-        dialog.set_transient_for(window);
-        dialog.present();
+        dialog.present(window);
     }
 
     function showUpToDateDialog(info) {
-        const dialog = new Adw.MessageDialog({
-            heading: 'Langux is up to date',
-            body: `Current version: ${info.currentVersion}\nLatest version: ${info.latestVersion}`,
-            body_use_markup: false,
+        const dialog = createHeaderDialog({
+            title: 'Langux is up to date',
+            content: buildDialogContent({
+                body: `Current version: ${info.currentVersion}\nLatest version: ${info.latestVersion}`,
+            }),
         });
         presentDialog(dialog);
     }
 
     function showUpdateAvailableDialog(info) {
-        const dialog = new Adw.MessageDialog({
-            heading: 'Update available',
-            body: `A newer stable release is available.\n\nCurrent version: ${info.currentVersion}\nLatest version: ${info.latestVersion}\nRelease: ${info.releaseTitle}`,
-            body_use_markup: false,
-            default_response: 'update',
+        const openButton = new Gtk.Button({
+            label: 'Open update page',
+            css_classes: ['suggested-action'],
+            halign: Gtk.Align.END,
         });
-        dialog.add_response('update', 'Open update page');
-        dialog.set_response_appearance('update', Adw.ResponseAppearance.SUGGESTED);
-        dialog.connect('response', (dialog_, response) => {
-            if (response !== 'update')
-                return;
+        const dialog = createHeaderDialog({
+            title: 'Update available',
+            content: buildDialogContent({
+                body: `A newer stable release is available.\n\nCurrent version: ${info.currentVersion}\nLatest version: ${info.latestVersion}\nRelease: ${info.releaseTitle}`,
+                child: openButton,
+            }),
+        });
+        openButton.connect('clicked', () => {
             try {
                 const launched = Gio.AppInfo.launch_default_for_uri(UPDATE_PAGE_URL, null);
                 if (launched === false)
@@ -64,15 +67,17 @@ export function buildUpdatesGroup({currentVersion, window, group: parentGroup = 
             } catch (error) {
                 console.error('Could not open the Langux update page.');
             }
+            dialog.close();
         });
         presentDialog(dialog);
     }
 
     function showFailureDialog() {
-        const dialog = new Adw.MessageDialog({
-            heading: 'Could not check for updates',
-            body: 'Unable to check for updates. Please try again later.',
-            body_use_markup: false,
+        const dialog = createHeaderDialog({
+            title: 'Could not check for updates',
+            content: buildDialogContent({
+                body: 'Unable to check for updates. Please try again later.',
+            }),
         });
         presentDialog(dialog);
     }
