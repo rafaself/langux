@@ -79,6 +79,13 @@ check('Adw.MessageDialog.add_response exists', Object.getOwnPropertyNames(Adw.Me
 check('Adw.MessageDialog.body_use_markup exists', Object.getOwnPropertyNames(Adw.MessageDialog.prototype).includes('body_use_markup'));
 check('Adw.MessageDialog.present callable', typeof Adw.MessageDialog.prototype.present === 'function');
 check('Adw.MessageDialog.set_transient_for callable', typeof Adw.MessageDialog.prototype.set_transient_for === 'function');
+check('Adw.ActionRow.activatable_widget exists', Object.getOwnPropertyNames(Adw.ActionRow.prototype).includes('activatable_widget'));
+check('Adw.AboutDialog constructible', typeof Adw.AboutDialog === 'function');
+check('Adw.AboutDialog.present callable', typeof Adw.AboutDialog.prototype.present === 'function');
+check('Adw.AboutDialog.application_name exists', Object.getOwnPropertyNames(Adw.AboutDialog.prototype).includes('application_name'));
+check('Adw.AboutDialog.license_type exists', Object.getOwnPropertyNames(Adw.AboutDialog.prototype).includes('license_type'));
+check('Adw.AboutDialog.website exists', Object.getOwnPropertyNames(Adw.AboutDialog.prototype).includes('website'));
+check('Gtk.Label.selectable exists', Object.getOwnPropertyNames(Gtk.Label.prototype).includes('selectable'));
 EOF
     probe_js "GTK4/libadwaita surface" "$GTK_CHECK"
     rm -f "$GTK_CHECK"
@@ -113,11 +120,13 @@ if typelib_exists "Soup-3.0"; then
     cat > "$UPDATE_CHECK" <<'EOF'
 import {checkForUpdates, UpdateChecker} from './updateChecker.js';
 import {UPDATE_API_URL, UPDATE_PAGE_URL} from '../ui/updateInfo.js';
+import {buildAboutGroup} from '../ui/aboutContent.js';
 import {buildUpdatesGroup} from '../ui/updatesContent.js';
 
 const check = (name, cond) => console.log(`RHECK: ${name} ${cond ? 'OK' : 'FAIL'}`);
 check('updateChecker module loads', typeof checkForUpdates === 'function');
 check('updateChecker exposes cancellation', typeof UpdateChecker === 'function');
+check('about Preferences module loads', typeof buildAboutGroup === 'function');
 check('updates Preferences module loads', typeof buildUpdatesGroup === 'function');
 check('update API is fixed HTTPS GitHub URL',
     UPDATE_API_URL === 'https://api.github.com/repos/rafaself/langux/releases/latest');

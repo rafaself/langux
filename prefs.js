@@ -6,6 +6,7 @@ import {
     buildApiKeyGroup,
     buildTranslationGroup,
 } from './ui/prefsContent.js';
+import {buildAboutGroup} from './ui/aboutContent.js';
 import {buildUpdatesGroup} from './ui/updatesContent.js';
 
 export default class LanguxPreferences extends ExtensionPreferences {
@@ -19,6 +20,7 @@ export default class LanguxPreferences extends ExtensionPreferences {
             currentVersion: this.metadata['version-name'],
             window,
         }));
+        page.add(buildAboutGroup({metadata: this.metadata, window}));
         window.add(page);
 
         window.set_title('Langux Settings');
