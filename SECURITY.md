@@ -2,7 +2,8 @@
 
 Langux is a local-first GNOME Shell extension. Its threat surface is intentionally
 small: it stores one credential (a Google Cloud API key) and makes HTTPS requests to
-Google Cloud Translation when the user explicitly asks for a translation.
+Google Cloud Translation after an explicit request or, when enabled, a one-second
+pause in typing.
 
 ## Secret handling
 
@@ -11,8 +12,9 @@ Google Cloud Translation when the user explicitly asks for a translation.
 - Keys must never be committed to the repository, embedded in code, or logged.
 - The key is sent to Google Cloud only, over HTTPS, in the `X-Goog-Api-Key` request
   header — never in URLs or query strings.
-- Langux never logs or persists source or translated text, and keeps no translation
-  history.
+- Langux never logs or persists source or translated text. Successful results can be
+  held in a bounded in-memory LRU cache for the current Shell session; the cache is
+  cleared on disable and can be disabled or cleared from preferences.
 - Langux has no backend and collects no telemetry. Translation requests go directly
   from your machine to `translation.googleapis.com`.
 
@@ -37,5 +39,5 @@ guidance as soon as a fix is verified.
   extension files.
 - Installer: `scripts/install.sh` verifies the SHA-256 of the downloaded archive
   against a checksum published on the same GitHub Release before installing.
-- Network: HTTPS only, against Google Cloud Translation, only on explicit user
-  action.
+- Network: HTTPS only, against Google Cloud Translation, only on explicit user action
+  or while the user-controlled live-translation setting is enabled.

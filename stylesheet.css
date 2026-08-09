@@ -124,10 +124,3 @@
 .langux-error {
     color: #e01b24;
 }
-
-.langux-footer {
-    color: rgba(0, 0, 0, 0.55);
-    font-size: 11px;
-    min-height: 0;
-    padding: 6px 0 0;
-}

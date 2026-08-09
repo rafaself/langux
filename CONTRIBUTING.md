@@ -5,9 +5,10 @@ Thanks for contributing to Langux. Keep it simple and keep it in MVP scope.
 ## MVP-scope rule
 
 Langux is a focused v0.1: open → translate → copy. Features outside that flow
-(history, favorites, auto-translation on keystrokes, multiple providers, backends,
-accounts, telemetry) stay out of the MVP. See the epic (issue #1) and the issue
-checklist before starting work. If in doubt, ask in the issue first.
+(persistent history, favorites, multiple providers, backends, accounts, telemetry)
+stay out of the MVP. Live translation is bounded to the user-controlled debounce
+workflow and is not persistent. See the epic (issue #1) and the issue checklist
+before starting work. If in doubt, ask in the issue first.
 
 ## Workflow
 

@@ -12,6 +12,17 @@
       <summary>Target language</summary>
       <description>The language to translate text into.</description>
     </key>
+    <key name="translate-while-typing" type="b">
+      <default>true</default>
+      <summary>Translate while typing</summary>
+      <description>Start a translation after text stops changing for one second.</description>
+    </key>
+    <key name="translation-cache-size" type="i">
+      <default>200</default>
+      <range min="0" max="1000"/>
+      <summary>Translation cache size</summary>
+      <description>Maximum number of successful translations kept in memory. Zero disables caching.</description>
+    </key>
     <key name="open-shortcut" type="as">
       <default>['&lt;Super&gt;t']</default>
       <summary>Shortcut to open Langux</summary>

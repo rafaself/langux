@@ -1,6 +1,7 @@
 import Adw from 'gi://Adw';
 import Gtk from 'gi://Gtk';
 
+import {clearCacheOverSessionBus} from '../services/cacheControl.js';
 import {SecretStore} from '../services/secretStore.js';
 import {AUTO_LANGUAGE, LANGUAGES, languageLabel} from './languages.js';
 
@@ -28,6 +29,54 @@ export function buildTranslationGroup(settings) {
 
     group.add(sourceRow);
     group.add(targetRow);
+
+    const liveRow = new Adw.SwitchRow({
+        title: 'Translate while typing',
+        subtitle: 'Translate one second after the text stops changing',
+        active: settings.get_boolean('translate-while-typing'),
+    });
+    liveRow.connect('notify::active', () => {
+        settings.set_boolean('translate-while-typing', liveRow.active);
+    });
+    group.add(liveRow);
+
+    const cacheAdjustment = new Gtk.Adjustment({
+        lower: 0,
+        upper: 1000,
+        step_increment: 1,
+        page_increment: 10,
+        value: settings.get_int('translation-cache-size'),
+    });
+    const cacheRow = new Adw.SpinRow({
+        title: 'Translation cache size',
+        subtitle: 'Successful translations kept in memory; zero disables caching',
+        adjustment: cacheAdjustment,
+    });
+    cacheRow.connect('notify::value', () => {
+        settings.set_int('translation-cache-size', Math.round(cacheRow.value));
+    });
+    group.add(cacheRow);
+
+    const clearRow = new Adw.ActionRow({
+        title: 'Clear translation cache',
+        subtitle: 'Remove successful translations from the running Shell session',
+    });
+    const clearButton = new Gtk.Button({
+        label: 'Clear',
+        valign: Gtk.Align.CENTER,
+    });
+    clearButton.connect('clicked', () => {
+        try {
+            clearCacheOverSessionBus();
+            clearRow.subtitle = 'Cache cleared';
+        } catch (error) {
+            console.error(`Failed to clear the translation cache: ${error?.message ?? error}`);
+            clearRow.subtitle = 'No active cache to clear';
+        }
+    });
+    clearRow.add_suffix(clearButton);
+    group.add(clearRow);
+
     return group;
 }
 

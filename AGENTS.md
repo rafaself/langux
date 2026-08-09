@@ -3,8 +3,10 @@
 ## Repository purpose
 
 Langux is a local-first quick translator for GNOME Shell: press a shortcut, type or paste
-text, translate with Google Cloud Translation (Basic v2), copy the result. No backend, no
-accounts, no telemetry, no history. See the epic in issue #1 and implementation issues #2-#8.
+text, translate with Google Cloud Translation (Basic v2), copy the result. Live translation
+is enabled by default and can be switched to explicit-Enter mode. There is no backend,
+account, telemetry, or persistent history. See the epic in issue #1 and implementation
+issues #2-#8.
 
 ## Repository layout
 
@@ -15,10 +17,13 @@ accounts, no telemetry, no history. See the epic in issue #1 and implementation 
 - `data/icon.svg` — the Langux icon, dark glyph (`#24292f`) for the light theme and docs; `data/icon-light.svg` — the light glyph (`#f6f7f8`) for the dark theme. The panel indicator picks the matching file via `Main.getStyleVariant()` (see `extension.js`) and swaps it when the color scheme changes.
 - `schemas/org.gnome.shell.extensions.langux.gschema.xml` — GSettings schema.
 - `ui/languages.js` — pure language list/helpers (no Shell imports; unit-testable).
+- `ui/translationCache.js` — bounded in-memory LRU cache (no Shell imports; unit-testable).
+- `ui/translationController.js` — pure debounce/request-generation controller (no Shell imports; unit-testable).
 - `ui/translatorPopup.js` — the translator popup (St/Clutter) and its keyboard-first UX.
 - `ui/errorMessages.js` — pure error-code → user-facing message mapping (no Shell imports; unit-testable).
 - `ui/prefsContent.js` — GTK-only preference row builders (no Shell imports).
 - `services/secretStore.js` — libsecret-backed API key storage (no Shell/GTK imports).
+- `services/cacheControl.js` — session-D-Bus cache-control interface shared by Shell and prefs.
 - `services/googleTranslate.js` — Google Cloud Translation Basic v2 client over Soup 3; error-normalizing, cancellable, no Shell/GTK imports.
 - `scripts/` — packaging/install helpers: `package.sh` (dist/langux.zip + checksum), `dev-install.sh`, `install.sh` (release installer that verifies SHA-256).
 - `tests/` — unit tests for pure modules, run with the Node built-in test runner.
@@ -37,8 +42,9 @@ implemented. Keep files small; add a new module instead of growing existing ones
 - Do not add Node/npm runtime dependencies; plain JavaScript only.
 - Never store API keys or secrets in GSettings. Secrets belong in libsecret/GNOME Keyring
   (issue #4).
-- Never translate automatically on keystrokes; translation starts only on explicit user
-  action (e.g. `Ctrl+Enter`).
+- Live translation is controlled by the `translate-while-typing` setting and uses a fixed
+  1000 ms debounce. Manual mode translates only on Enter or `Ctrl+Enter`; Shift+Enter
+  remains a multiline newline.
 - `enable()` must create and `disable()` must destroy every actor, signal, keybinding, and
   network request created while enabled. Nothing alive after `disable()`.
 - Keep scope to the issued checklist; anything not needed for open → translate → copy stays
@@ -78,9 +84,11 @@ cp -r metadata.json extension.js prefs.js stylesheet.css stylesheet-dark.css \
   ~/.local/share/gnome-shell/extensions/$UUID/
 mkdir -p ~/.local/share/gnome-shell/extensions/$UUID/data
 cp data/icon.svg data/icon-light.svg ~/.local/share/gnome-shell/extensions/$UUID/data/
-cp ui/languages.js ui/translatorPopup.js ui/prefsContent.js ui/errorMessages.js \
+cp ui/languages.js ui/translationCache.js ui/translationController.js \
+  ui/translatorPopup.js ui/prefsContent.js ui/errorMessages.js \
   ~/.local/share/gnome-shell/extensions/$UUID/ui/
-cp services/secretStore.js services/googleTranslate.js ~/.local/share/gnome-shell/extensions/$UUID/services/
+cp services/secretStore.js services/googleTranslate.js services/cacheControl.js \
+  ~/.local/share/gnome-shell/extensions/$UUID/services/
 cp -r schemas ~/.local/share/gnome-shell/extensions/$UUID/ && \
   rm ~/.local/share/gnome-shell/extensions/$UUID/schemas/gschemas.compiled
 glib-compile-schemas ~/.local/share/gnome-shell/extensions/$UUID/schemas/

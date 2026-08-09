@@ -72,6 +72,9 @@ check('Gtk.Box has no add()', !Object.getOwnPropertyNames(Gtk.Box.prototype).inc
 check('Adw.PreferencesGroup.add exists', Object.getOwnPropertyNames(Adw.PreferencesGroup.prototype).includes('add'));
 check('Adw.PreferencesPage.add exists', Object.getOwnPropertyNames(Adw.PreferencesPage.prototype).includes('add'));
 check('Adw.PreferencesWindow.add exists', Object.getOwnPropertyNames(Adw.PreferencesWindow.prototype).includes('add'));
+check('Adw.SwitchRow.active exists', Object.getOwnPropertyNames(Adw.SwitchRow.prototype).includes('active'));
+check('Adw.SpinRow.value exists', Object.getOwnPropertyNames(Adw.SpinRow.prototype).includes('value'));
+check('Adw.SpinRow.adjustment exists', Object.getOwnPropertyNames(Adw.SpinRow.prototype).includes('adjustment'));
 check('Adw.MessageDialog.add_response exists', Object.getOwnPropertyNames(Adw.MessageDialog.prototype).includes('add_response'));
 EOF
     probe_js "GTK4/libadwaita surface" "$GTK_CHECK"
