@@ -87,6 +87,7 @@ check('Adw.AboutDialog.present callable', typeof Adw.AboutDialog.prototype.prese
 check('Adw.AboutDialog.application_name exists', Object.getOwnPropertyNames(Adw.AboutDialog.prototype).includes('application_name'));
 check('Adw.AboutDialog.license_type exists', Object.getOwnPropertyNames(Adw.AboutDialog.prototype).includes('license_type'));
 check('Adw.AboutDialog.website exists', Object.getOwnPropertyNames(Adw.AboutDialog.prototype).includes('website'));
+check('Adw.AboutDialog.issue_url exists', Object.getOwnPropertyNames(Adw.AboutDialog.prototype).includes('issue_url'));
 check('Gtk.Label.selectable exists', Object.getOwnPropertyNames(Gtk.Label.prototype).includes('selectable'));
 EOF
     probe_js "GTK4/libadwaita surface" "$GTK_CHECK"

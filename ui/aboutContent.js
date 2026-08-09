@@ -18,6 +18,7 @@ function configureAboutDialog(widget) {
 export function buildAboutGroup({metadata, window, group: parentGroup = null}) {
     const version = metadata['version-name'];
     const repositoryUrl = metadata.url;
+    const issueUrl = `${repositoryUrl.replace(/\/+$/, '')}/issues/new`;
 
     const group = parentGroup ?? new Adw.PreferencesGroup({title: 'About'});
     const row = new Adw.ActionRow({
@@ -41,6 +42,7 @@ export function buildAboutGroup({metadata, window, group: parentGroup = null}) {
                 version,
                 developer_name: 'Langux contributors',
                 website: repositoryUrl,
+                issue_url: issueUrl,
                 license_type: Gtk.License.GPL_3_0,
             });
         }
