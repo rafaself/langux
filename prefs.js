@@ -7,6 +7,7 @@ import {
     buildTranslationGroup,
 } from './ui/prefsContent.js';
 import {buildAboutGroup} from './ui/aboutContent.js';
+import {buildShortcutsGroup} from './ui/shortcutsContent.js';
 import {buildUpdatesGroup} from './ui/updatesContent.js';
 
 function findInitialFocus(widget) {
@@ -40,6 +41,7 @@ export default class LanguxPreferences extends ExtensionPreferences {
             window,
             group: updatesAboutGroup,
         });
+        buildShortcutsGroup({settings, window, group: updatesAboutGroup});
         buildAboutGroup({metadata: this.metadata, window, group: updatesAboutGroup});
         page.add(updatesAboutGroup);
         window.add(page);

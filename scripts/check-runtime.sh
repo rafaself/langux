@@ -124,12 +124,14 @@ if typelib_exists "Soup-3.0"; then
 import {checkForUpdates, UpdateChecker} from './updateChecker.js';
 import {UPDATE_API_URL, UPDATE_PAGE_URL} from '../ui/updateInfo.js';
 import {buildAboutGroup} from '../ui/aboutContent.js';
+import {buildShortcutsGroup} from '../ui/shortcutsContent.js';
 import {buildUpdatesGroup} from '../ui/updatesContent.js';
 
 const check = (name, cond) => console.log(`RHECK: ${name} ${cond ? 'OK' : 'FAIL'}`);
 check('updateChecker module loads', typeof checkForUpdates === 'function');
 check('updateChecker exposes cancellation', typeof UpdateChecker === 'function');
 check('about Preferences module loads', typeof buildAboutGroup === 'function');
+check('shortcuts Preferences module loads', typeof buildShortcutsGroup === 'function');
 check('updates Preferences module loads', typeof buildUpdatesGroup === 'function');
 check('update API is fixed HTTPS GitHub URL',
     UPDATE_API_URL === 'https://api.github.com/repos/rafaself/langux/releases/latest');
