@@ -36,28 +36,43 @@ function configuredOpenShortcut(settings) {
     return shortcuts.length > 0 ? shortcuts.join(' or ') : 'Unassigned';
 }
 
+function buildShortcutRows(settings) {
+    const shortcuts = [
+        ['Open or toggle Langux', configuredOpenShortcut(settings)],
+        ['Translate text', 'Enter or Ctrl+Enter'],
+        ['Insert a new line', 'Shift+Enter'],
+        ['Close the popup', 'Escape or Close'],
+        ['Choose source/target language', 'Language buttons'],
+        ['Swap languages', 'Swap button'],
+        ['Copy translated text', 'Copy button'],
+        ['Open Preferences', 'Settings button'],
+        ['Translate while typing', 'After 1 second idle'],
+    ];
+    const group = new Adw.PreferencesGroup({title: 'Shortcuts and actions'});
+
+    for (const [action, command] of shortcuts) {
+        const row = new Adw.ActionRow({title: action});
+        row.add_suffix(new Gtk.Label({
+            label: command,
+            css_classes: ['dim-label'],
+            selectable: false,
+            valign: Gtk.Align.CENTER,
+        }));
+        group.add(row);
+    }
+
+    return group;
+}
+
 function showShortcutsDialog(settings, window) {
     const dialog = new Adw.MessageDialog({
         heading: 'Langux shortcuts',
-        body: [
-            `Open or toggle Langux: ${configuredOpenShortcut(settings)}`,
-            '',
-            'Translator popup:',
-            '• Enter or Ctrl+Enter — Translate',
-            '• Shift+Enter — Insert a new line',
-            '• Escape — Close the popup',
-            '• Source and target language — Choose a language',
-            '• Swap — Swap languages when the source is explicit',
-            '• Copy — Copy the translated text',
-            '• Settings — Open Preferences',
-            '• Close — Close the popup',
-            '',
-            'When enabled, Translate while typing translates one second after typing stops.',
-        ].join('\n'),
+        body: 'Keyboard shortcuts and available translator actions.',
         body_use_markup: false,
         default_response: 'close',
         close_response: 'close',
     });
+    dialog.set_extra_child(buildShortcutRows(settings));
     dialog.add_response('close', 'Close');
     dialog.set_transient_for(window);
     dialog.present();
