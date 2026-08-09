@@ -40,6 +40,16 @@ export function buildTranslationGroup(settings) {
     });
     group.add(liveRow);
 
+    const cacheEnabledRow = new Adw.SwitchRow({
+        title: 'Enable translation cache',
+        subtitle: 'Reuse successful translations from memory during this Shell session',
+        active: settings.get_boolean('translation-cache-enabled'),
+    });
+    cacheEnabledRow.connect('notify::active', () => {
+        settings.set_boolean('translation-cache-enabled', cacheEnabledRow.active);
+    });
+    group.add(cacheEnabledRow);
+
     const cacheAdjustment = new Gtk.Adjustment({
         lower: 0,
         upper: 1000,
@@ -49,7 +59,7 @@ export function buildTranslationGroup(settings) {
     });
     const cacheRow = new Adw.SpinRow({
         title: 'Translation cache size',
-        subtitle: 'Successful translations kept in memory; zero disables caching',
+        subtitle: 'Maximum successful translations kept when caching is enabled; zero disables it',
         adjustment: cacheAdjustment,
     });
     cacheRow.connect('notify::value', () => {

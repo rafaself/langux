@@ -12,9 +12,10 @@ pause in typing.
 - Keys must never be committed to the repository, embedded in code, or logged.
 - The key is sent to Google Cloud only, over HTTPS, in the `X-Goog-Api-Key` request
   header — never in URLs or query strings.
-- Langux never logs or persists source or translated text. Successful results can be
-  held in a bounded in-memory LRU cache for the current Shell session; the cache is
-  cleared on disable and can be disabled or cleared from preferences.
+- Langux never logs or persists source or translated text. When explicitly enabled,
+  successful results can be held in a bounded in-memory LRU cache for the current
+  Shell session; caching is disabled by default, cleared on disable, and can be
+  disabled or cleared from preferences.
 - Langux has no backend and collects no telemetry. Translation requests go directly
   from your machine to `translation.googleapis.com`.
 

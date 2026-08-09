@@ -47,7 +47,12 @@ function deferred() {
     return {promise, resolve, reject};
 }
 
-function setup({translateWhileTyping = true, cacheSize = 20, translate} = {}) {
+function setup({
+    translateWhileTyping = true,
+    cacheEnabled = false,
+    cacheSize = 20,
+    translate,
+} = {}) {
     const scheduler = new FakeScheduler();
     const events = [];
     const requests = [];
@@ -58,6 +63,7 @@ function setup({translateWhileTyping = true, cacheSize = 20, translate} = {}) {
     const controller = new TranslationController({
         translate: provider,
         cache: new TranslationCache(cacheSize),
+        cacheEnabled,
         source: 'auto',
         target: 'en',
         translateWhileTyping,
@@ -136,7 +142,7 @@ test('runtime mode changes cancel pending debounce and can enable it for current
 });
 
 test('duplicate text changes do not add timers or duplicate requests', async () => {
-    const {controller, scheduler, requests} = setup();
+    const {controller, scheduler, requests} = setup({cacheEnabled: true});
 
     controller.setText('same');
     controller.setText('same');
@@ -151,8 +157,72 @@ test('duplicate text changes do not add timers or duplicate requests', async () 
     assert.equal(requests.length, 1);
 });
 
+test('cache is disabled by default and successful results are not retained', async () => {
+    const {controller, scheduler, requests} = setup();
+
+    assert.equal(controller.cacheEnabled, false);
+    controller.setText('private');
+    scheduler.advance(1000);
+    await settle();
+    await settle();
+
+    controller.setText('other');
+    controller.setText('private');
+    scheduler.advance(1000);
+    await settle();
+    await settle();
+
+    assert.equal(requests.length, 2);
+    assert.equal(controller.cache.get('auto', 'en', 'private'), undefined);
+});
+
+test('enabling the cache at runtime stores and reuses later results', async () => {
+    const {controller, scheduler, requests} = setup();
+
+    controller.setText('not cached');
+    scheduler.advance(1000);
+    await settle();
+    await settle();
+
+    controller.setCacheEnabled(true);
+    assert.equal(controller.cacheEnabled, true);
+    controller.setText('cached');
+    scheduler.advance(1000);
+    await settle();
+    await settle();
+    controller.setText('other');
+    controller.setText('cached');
+    scheduler.advance(1000);
+    await settle();
+    await settle();
+
+    assert.equal(requests.length, 2);
+    assert.equal(controller.cache.get('auto', 'en', 'cached').text, 'translated:cached');
+});
+
+test('disabling the cache clears entries and blocks an in-flight write', async () => {
+    const pending = deferred();
+    const {controller, scheduler} = setup({
+        cacheEnabled: true,
+        translate: () => pending.promise,
+    });
+    controller.cache.set('auto', 'en', 'existing', {text: 'old'});
+
+    controller.setText('in flight');
+    scheduler.advance(1000);
+    await settle();
+    controller.setCacheEnabled(false);
+    assert.equal(controller.cacheEnabled, false);
+    assert.equal(controller.cache.size, 0);
+
+    pending.resolve({text: 'must not cache'});
+    await settle();
+    await settle();
+    assert.equal(controller.cache.get('auto', 'en', 'in flight'), undefined);
+});
+
 test('cache hits avoid a second provider request', async () => {
-    const {controller, scheduler, requests, events} = setup();
+    const {controller, scheduler, requests, events} = setup({cacheEnabled: true});
 
     controller.setText('cached');
     scheduler.advance(1000);
@@ -183,6 +253,7 @@ test('stale async responses cannot update output or cache', async () => {
     const first = deferred();
     const second = deferred();
     const {controller, scheduler, events, requests} = setup({
+        cacheEnabled: true,
         translate: args => {
             requests.push(args);
             return requests.length === 1 ? first.promise : second.promise;
@@ -209,7 +280,7 @@ test('stale async responses cannot update output or cache', async () => {
 
 test('failed requests are not cached and can be retried', async () => {
     let calls = 0;
-    const {controller, scheduler, requests} = setup({
+    const {controller, scheduler, requests} = setup({cacheEnabled: true,
         translate: args => {
             requests.push(args);
             calls++;
@@ -233,7 +304,7 @@ test('failed requests are not cached and can be retried', async () => {
 
 test('clearing during a request prevents that response from repopulating cache', async () => {
     const pending = deferred();
-    const {controller, scheduler, requests} = setup({translate: args => {
+    const {controller, scheduler, requests} = setup({cacheEnabled: true, translate: args => {
         requests.push(args);
         return pending.promise;
     }});

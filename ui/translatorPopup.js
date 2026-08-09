@@ -55,6 +55,7 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
         this._controller = new TranslationController({
             translate,
             cache: new TranslationCache(this._settings.get_int('translation-cache-size')),
+            cacheEnabled: this._settings.get_boolean('translation-cache-enabled'),
             source: this._settings.get_string('source-language'),
             target: this._settings.get_string('target-language'),
             translateWhileTyping: this._settings.get_boolean('translate-while-typing'),
@@ -80,6 +81,9 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
             else if (key === 'translate-while-typing')
                 this._controller.setTranslateWhileTyping(
                     settings.get_boolean('translate-while-typing'));
+            else if (key === 'translation-cache-enabled')
+                this._controller.setCacheEnabled(
+                    settings.get_boolean('translation-cache-enabled'));
             else if (key === 'translation-cache-size')
                 this._controller.setCacheSize(settings.get_int('translation-cache-size'));
         });

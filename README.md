@@ -82,10 +82,11 @@ Translation behavior:
 - *Translate while typing* is enabled by default and sends the current non-blank text
   after it has been unchanged for one second. Disable it for manual Enter/Ctrl+Enter
   translation.
-- Successful translations use a bounded in-memory LRU cache. The cache size is
-  configurable from 0 to 1000 entries, and zero disables it. The cache is cleared
-  when Langux is disabled and can be cleared from this settings page; it is never
-  written to disk.
+- Translation caching is disabled by default. Enable it to reuse successful
+  translations in a bounded in-memory LRU cache. The cache size is configurable from
+  0 to 1000 entries, and zero also disables it. Turning it off clears existing entries;
+  the cache is also cleared when Langux is disabled and can be cleared from this
+  settings page. It is never written to disk.
 
 ## Privacy
 
@@ -94,11 +95,12 @@ history. Live translation is a user-controlled preference enabled by default: af
 the one-second debounce, non-blank text is sent directly from the local machine to
 Google Cloud Translation over HTTPS. With live translation disabled, requests start
 only after Enter or Ctrl+Enter. Successful results may remain in a bounded in-memory
-LRU cache for the current Shell session; the cache can be disabled or cleared and is
-cleared when the extension is disabled. Input and output are never written to disk
-or logs. Translated text is only written to the system clipboard when the user
-explicitly clicks Copy. Nothing else is stored locally beyond the API key (GNOME
-Keyring) and this transient cache.
+LRU cache for the current Shell session only when the user enables caching; it is
+disabled by default, can be cleared, and is cleared when the extension is disabled.
+Turning caching off removes existing entries immediately. Input and output are never
+written to disk or logs. Translated text is only written to the system clipboard when
+the user explicitly clicks Copy. Nothing else is stored locally beyond the API key
+(GNOME Keyring) and this optional transient cache.
 
 ## Uninstall
 

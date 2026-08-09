@@ -37,6 +37,7 @@ export class TranslationController {
     constructor({
         translate,
         cache = new TranslationCache(DEFAULT_TRANSLATION_CACHE_SIZE),
+        cacheEnabled = false,
         source = 'auto',
         target = 'en',
         translateWhileTyping = true,
@@ -58,6 +59,7 @@ export class TranslationController {
 
         this._translate = translate;
         this._cache = cache;
+        this._cacheEnabled = Boolean(cacheEnabled);
         this._source = source;
         this._target = target;
         this._text = '';
@@ -97,6 +99,10 @@ export class TranslationController {
 
     get translateWhileTyping() {
         return this._translateWhileTyping;
+    }
+
+    get cacheEnabled() {
+        return this._cacheEnabled;
     }
 
     get hasPendingTranslation() {
@@ -169,6 +175,21 @@ export class TranslationController {
         if (this._destroyed)
             return;
         this._cache.resize(size);
+    }
+
+    setCacheEnabled(enabled) {
+        if (this._destroyed)
+            return false;
+
+        const nextValue = Boolean(enabled);
+        if (nextValue === this._cacheEnabled)
+            return false;
+
+        this._cacheEnabled = nextValue;
+        this._cacheGeneration++;
+        if (!nextValue)
+            this._cache.clear();
+        return true;
     }
 
     /**
@@ -264,7 +285,9 @@ export class TranslationController {
         this._generation++;
         this._cancelActiveRequest();
 
-        const cached = this._cache.get(key.source, key.target, key.text);
+        const cached = this._cacheEnabled
+            ? this._cache.get(key.source, key.target, key.text)
+            : undefined;
         if (cached !== undefined) {
             this._lastResultKey = key;
             this._onResult(cached);
@@ -275,6 +298,7 @@ export class TranslationController {
             key,
             generation: this._generation,
             cacheGeneration: this._cacheGeneration,
+            cacheEnabled: this._cacheEnabled,
             cancellable: this._createCancellable(),
         };
         this._activeRequest = request;
@@ -303,7 +327,8 @@ export class TranslationController {
             return;
 
         this._activeRequest = null;
-        if (request.cacheGeneration === this._cacheGeneration)
+        if (request.cacheEnabled && this._cacheEnabled &&
+            request.cacheGeneration === this._cacheGeneration)
             this._cache.set(request.key.source, request.key.target, request.key.text, result);
         this._lastResultKey = request.key;
         this._onResult(result);

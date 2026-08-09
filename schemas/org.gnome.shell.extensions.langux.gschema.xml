@@ -17,6 +17,11 @@
       <summary>Translate while typing</summary>
       <description>Start a translation after text stops changing for one second.</description>
     </key>
+    <key name="translation-cache-enabled" type="b">
+      <default>false</default>
+      <summary>Enable translation cache</summary>
+      <description>Keep successful translations in memory for reuse during this Shell session.</description>
+    </key>
     <key name="translation-cache-size" type="i">
       <default>200</default>
       <range min="0" max="1000"/>

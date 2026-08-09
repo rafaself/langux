@@ -4,9 +4,9 @@
 
 Langux is a local-first quick translator for GNOME Shell: press a shortcut, type or paste
 text, translate with Google Cloud Translation (Basic v2), copy the result. Live translation
-is enabled by default and can be switched to explicit-Enter mode. There is no backend,
-account, telemetry, or persistent history. See the epic in issue #1 and implementation
-issues #2-#8.
+is enabled by default and can be switched to explicit-Enter mode. The optional translation
+cache is disabled by default. There is no backend, account, telemetry, or persistent
+history. See the epic in issue #1 and implementation issues #2-#8.
 
 ## Repository layout
 
