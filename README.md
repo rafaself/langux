@@ -56,6 +56,17 @@ gnome-extensions enable langux@rafaself.github.io
 `gnome-extensions install --force` (current user only), and prints enable/restart
 hints. It fails clearly if `gnome-extensions` is unavailable.
 
+## Check for updates
+
+The *Updates* section in Preferences provides an optional, manual **Check for
+updates** action. Langux contacts the fixed GitHub Releases API only after you
+press the button and checks the latest stable release metadata. It does not send
+translation text or the Google API key, persist the update result, download
+release assets, install anything, or reload itself. If an update is available,
+**Open update page** opens the GitHub release page; installation remains handled
+by GNOME's extension tools. Langux performs no automatic or background update
+checks.
+
 ## Configure a Google Cloud API key
 
 Google Cloud Translation Basic v2 requires a paid Google Cloud project (with a
@@ -100,7 +111,10 @@ disabled by default, can be cleared, and is cleared when the extension is disabl
 Turning caching off removes existing entries immediately. Input and output are never
 written to disk or logs. Translated text is only written to the system clipboard when
 the user explicitly clicks Copy. Nothing else is stored locally beyond the API key
-(GNOME Keyring) and this optional transient cache.
+(GNOME Keyring) and this optional transient cache. Manual update checks contact
+GitHub only when requested, send release metadata requests only, and do not
+persist the response or download release assets. Installation remains under
+GNOME's control; Langux has no automatic background update checker.
 
 ## Uninstall
 

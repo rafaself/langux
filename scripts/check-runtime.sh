@@ -76,6 +76,9 @@ check('Adw.SwitchRow.active exists', Object.getOwnPropertyNames(Adw.SwitchRow.pr
 check('Adw.SpinRow.value exists', Object.getOwnPropertyNames(Adw.SpinRow.prototype).includes('value'));
 check('Adw.SpinRow.adjustment exists', Object.getOwnPropertyNames(Adw.SpinRow.prototype).includes('adjustment'));
 check('Adw.MessageDialog.add_response exists', Object.getOwnPropertyNames(Adw.MessageDialog.prototype).includes('add_response'));
+check('Adw.MessageDialog.body_use_markup exists', Object.getOwnPropertyNames(Adw.MessageDialog.prototype).includes('body_use_markup'));
+check('Adw.MessageDialog.present callable', typeof Adw.MessageDialog.prototype.present === 'function');
+check('Adw.MessageDialog.set_transient_for callable', typeof Adw.MessageDialog.prototype.set_transient_for === 'function');
 EOF
     probe_js "GTK4/libadwaita surface" "$GTK_CHECK"
     rm -f "$GTK_CHECK"
@@ -87,17 +90,44 @@ fi
 if typelib_exists "Secret-1" && typelib_exists "Soup-3.0"; then
     SVC_CHECK="$(mktemp --suffix=.mjs)"
     cat > "$SVC_CHECK" <<'EOF'
+import Gio from 'gi://Gio';
 import Secret from 'gi://Secret';
 import Soup from 'gi://Soup?version=3.0';
 
 const check = (name, cond) => console.log(`RHECK: ${name} ${cond ? 'OK' : 'FAIL'}`);
 check('libsecret password_lookup callable', typeof Secret.password_lookup === 'function');
 check('libsoup3 Session constructible', typeof Soup.Session === 'function');
+check('libsoup3 Message.new callable', typeof Soup.Message.new === 'function');
+check('libsoup3 send_and_read_async callable', typeof Soup.Session.prototype.send_and_read_async === 'function');
+check('Gio.AppInfo.launch_default_for_uri callable', typeof Gio.AppInfo.launch_default_for_uri === 'function');
 EOF
     probe_js "service libs" "$SVC_CHECK"
     rm -f "$SVC_CHECK"
 else
     echo "RHECK: service libs SKIP (Secret-1/Soup-3.0 typelibs absent)"
+fi
+
+# --- update service module ----------------------------------------------------
+if typelib_exists "Soup-3.0"; then
+    UPDATE_CHECK="$(mktemp --tmpdir="$ROOT/services" .runtime-update-XXXXXX.mjs)"
+    cat > "$UPDATE_CHECK" <<'EOF'
+import {checkForUpdates, UpdateChecker} from './updateChecker.js';
+import {UPDATE_API_URL, UPDATE_PAGE_URL} from '../ui/updateInfo.js';
+import {buildUpdatesGroup} from '../ui/updatesContent.js';
+
+const check = (name, cond) => console.log(`RHECK: ${name} ${cond ? 'OK' : 'FAIL'}`);
+check('updateChecker module loads', typeof checkForUpdates === 'function');
+check('updateChecker exposes cancellation', typeof UpdateChecker === 'function');
+check('updates Preferences module loads', typeof buildUpdatesGroup === 'function');
+check('update API is fixed HTTPS GitHub URL',
+    UPDATE_API_URL === 'https://api.github.com/repos/rafaself/langux/releases/latest');
+check('update page is fixed HTTPS GitHub URL',
+    UPDATE_PAGE_URL === 'https://github.com/rafaself/langux/releases/latest');
+EOF
+    probe_js "update service" "$UPDATE_CHECK"
+    rm -f "$UPDATE_CHECK"
+else
+    echo "RHECK: update service SKIP (Soup-3.0 typelib absent)"
 fi
 
 # --- prefs.js resource path resolves at runtime -------------------------------
