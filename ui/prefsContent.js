@@ -7,6 +7,14 @@ import {AUTO_LANGUAGE, LANGUAGES, languageLabel} from './languages.js';
 
 const SOURCE_CODES = [AUTO_LANGUAGE, ...LANGUAGES.map(l => l.code)];
 const TARGET_CODES = LANGUAGES.map(l => l.code);
+const CACHE_SIZE_OPTIONS = [
+    {value: 0, label: '0 (Disabled)'},
+    {value: 50, label: '50'},
+    {value: 100, label: '100'},
+    {value: 200, label: '200 (Recommended)'},
+    {value: 500, label: '500'},
+    {value: 1000, label: '1000'},
+];
 
 export function buildTranslationGroup(settings) {
     const group = new Adw.PreferencesGroup({title: 'Translation'});
@@ -50,21 +58,7 @@ export function buildTranslationGroup(settings) {
     });
     group.add(cacheEnabledRow);
 
-    const cacheAdjustment = new Gtk.Adjustment({
-        lower: 0,
-        upper: 1000,
-        step_increment: 1,
-        page_increment: 10,
-        value: settings.get_int('translation-cache-size'),
-    });
-    const cacheRow = new Adw.SpinRow({
-        title: 'Translation cache size',
-        subtitle: 'Maximum successful translations kept when caching is enabled; zero disables it',
-        adjustment: cacheAdjustment,
-    });
-    cacheRow.connect('notify::value', () => {
-        settings.set_int('translation-cache-size', Math.round(cacheRow.value));
-    });
+    const cacheRow = _buildCacheSizeRow(settings);
     group.add(cacheRow);
 
     const clearRow = new Adw.ActionRow({
@@ -216,5 +210,31 @@ function _buildLanguageRow(title, codes, selectedCode) {
 
     const index = codes.indexOf(selectedCode);
     row.selected = index >= 0 ? index : 0;
+    return row;
+}
+
+function _buildCacheSizeRow(settings) {
+    const currentSize = settings.get_int('translation-cache-size');
+    const options = CACHE_SIZE_OPTIONS.some(option => option.value === currentSize)
+        ? CACHE_SIZE_OPTIONS
+        : [
+            ...CACHE_SIZE_OPTIONS.slice(0, CACHE_SIZE_OPTIONS.findIndex(
+                option => option.value > currentSize)),
+            {value: currentSize, label: `${currentSize} (Current)`},
+            ...CACHE_SIZE_OPTIONS.slice(CACHE_SIZE_OPTIONS.findIndex(
+                option => option.value > currentSize)),
+        ];
+    const row = new Adw.ComboRow({
+        title: 'Translation cache size',
+        subtitle: 'Maximum successful translations kept when caching is enabled; zero disables it',
+    });
+    const model = new Gtk.StringList();
+    for (const option of options)
+        model.append(option.label);
+    row.model = model;
+    row.selected = options.findIndex(option => option.value === currentSize);
+    row.connect('notify::selected', () => {
+        settings.set_int('translation-cache-size', options[row.selected].value);
+    });
     return row;
 }
