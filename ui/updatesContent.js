@@ -41,10 +41,7 @@ export function buildUpdatesGroup({currentVersion, window, group: parentGroup = 
             heading: 'Langux is up to date',
             body: `Current version: ${info.currentVersion}\nLatest version: ${info.latestVersion}`,
             body_use_markup: false,
-            default_response: 'close',
-            close_response: 'close',
         });
-        dialog.add_response('close', 'Close');
         presentDialog(dialog);
     }
 
@@ -54,9 +51,7 @@ export function buildUpdatesGroup({currentVersion, window, group: parentGroup = 
             body: `A newer stable release is available.\n\nCurrent version: ${info.currentVersion}\nLatest version: ${info.latestVersion}\nRelease: ${info.releaseTitle}`,
             body_use_markup: false,
             default_response: 'update',
-            close_response: 'close',
         });
-        dialog.add_response('close', 'Close');
         dialog.add_response('update', 'Open update page');
         dialog.set_response_appearance('update', Adw.ResponseAppearance.SUGGESTED);
         dialog.connect('response', (dialog_, response) => {
@@ -78,10 +73,7 @@ export function buildUpdatesGroup({currentVersion, window, group: parentGroup = 
             heading: 'Could not check for updates',
             body: 'Unable to check for updates. Please try again later.',
             body_use_markup: false,
-            default_response: 'close',
-            close_response: 'close',
         });
-        dialog.add_response('close', 'Close');
         presentDialog(dialog);
     }
 

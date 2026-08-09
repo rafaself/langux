@@ -48,7 +48,10 @@ function buildShortcutRows(settings) {
         ['Open Preferences', 'Settings button'],
         ['Translate while typing', 'After 1 second idle'],
     ];
-    const group = new Adw.PreferencesGroup({title: 'Shortcuts and actions'});
+    const group = new Adw.PreferencesGroup({
+        title: 'Shortcuts and actions',
+        width_request: 520,
+    });
 
     for (const [action, command] of shortcuts) {
         const row = new Adw.ActionRow({title: action});
@@ -69,11 +72,8 @@ function showShortcutsDialog(settings, window) {
         heading: 'Langux shortcuts',
         body: 'Keyboard shortcuts and available translator actions.',
         body_use_markup: false,
-        default_response: 'close',
-        close_response: 'close',
     });
     dialog.set_extra_child(buildShortcutRows(settings));
-    dialog.add_response('close', 'Close');
     dialog.set_transient_for(window);
     dialog.present();
 }

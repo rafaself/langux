@@ -78,6 +78,7 @@ check('Adw.SwitchRow.active exists', Object.getOwnPropertyNames(Adw.SwitchRow.pr
 check('Adw.SpinRow.value exists', Object.getOwnPropertyNames(Adw.SpinRow.prototype).includes('value'));
 check('Adw.SpinRow.adjustment exists', Object.getOwnPropertyNames(Adw.SpinRow.prototype).includes('adjustment'));
 check('Adw.MessageDialog.add_response exists', Object.getOwnPropertyNames(Adw.MessageDialog.prototype).includes('add_response'));
+check('Adw.MessageDialog.set_extra_child callable', typeof Adw.MessageDialog.prototype.set_extra_child === 'function');
 check('Adw.MessageDialog.body_use_markup exists', Object.getOwnPropertyNames(Adw.MessageDialog.prototype).includes('body_use_markup'));
 check('Adw.MessageDialog.present callable', typeof Adw.MessageDialog.prototype.present === 'function');
 check('Adw.MessageDialog.set_transient_for callable', typeof Adw.MessageDialog.prototype.set_transient_for === 'function');
@@ -89,6 +90,7 @@ check('Adw.AboutDialog.license_type exists', Object.getOwnPropertyNames(Adw.Abou
 check('Adw.AboutDialog.website exists', Object.getOwnPropertyNames(Adw.AboutDialog.prototype).includes('website'));
 check('Adw.AboutDialog.issue_url exists', Object.getOwnPropertyNames(Adw.AboutDialog.prototype).includes('issue_url'));
 check('Gtk.Label.selectable exists', Object.getOwnPropertyNames(Gtk.Label.prototype).includes('selectable'));
+check('Gtk.Widget.width_request exists', Object.getOwnPropertyNames(Gtk.Widget.prototype).includes('width_request'));
 EOF
     probe_js "GTK4/libadwaita surface" "$GTK_CHECK"
     rm -f "$GTK_CHECK"
