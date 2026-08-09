@@ -5,8 +5,8 @@ import Gtk from 'gi://Gtk';
 import {UpdateChecker, UpdateErrorCode} from '../services/updateChecker.js';
 import {UPDATE_PAGE_URL} from './updateInfo.js';
 
-export function buildUpdatesGroup({currentVersion, window}) {
-    const group = new Adw.PreferencesGroup({title: 'Updates'});
+export function buildUpdatesGroup({currentVersion, window, group: parentGroup = null}) {
+    const group = parentGroup ?? new Adw.PreferencesGroup({title: 'Updates'});
     const row = new Adw.ActionRow({
         title: 'Check for updates',
         subtitle: `Installed version: ${currentVersion}`,

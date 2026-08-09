@@ -15,11 +15,11 @@ function configureAboutDialog(widget) {
         configureAboutDialog(child);
 }
 
-export function buildAboutGroup({metadata, window}) {
+export function buildAboutGroup({metadata, window, group: parentGroup = null}) {
     const version = metadata['version-name'];
     const repositoryUrl = metadata.url;
 
-    const group = new Adw.PreferencesGroup({title: 'About'});
+    const group = parentGroup ?? new Adw.PreferencesGroup({title: 'About'});
     const row = new Adw.ActionRow({
         title: `About ${metadata.name}`,
         subtitle: `Version ${version}`,

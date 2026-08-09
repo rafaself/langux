@@ -72,6 +72,8 @@ check('Gtk.Box has no add()', !Object.getOwnPropertyNames(Gtk.Box.prototype).inc
 check('Adw.PreferencesGroup.add exists', Object.getOwnPropertyNames(Adw.PreferencesGroup.prototype).includes('add'));
 check('Adw.PreferencesPage.add exists', Object.getOwnPropertyNames(Adw.PreferencesPage.prototype).includes('add'));
 check('Adw.PreferencesWindow.add exists', Object.getOwnPropertyNames(Adw.PreferencesWindow.prototype).includes('add'));
+check('Adw.PreferencesWindow.set_focus callable', typeof Adw.PreferencesWindow.prototype.set_focus === 'function');
+check('Adw.ComboRow constructible', typeof Adw.ComboRow === 'function');
 check('Adw.SwitchRow.active exists', Object.getOwnPropertyNames(Adw.SwitchRow.prototype).includes('active'));
 check('Adw.SpinRow.value exists', Object.getOwnPropertyNames(Adw.SpinRow.prototype).includes('value'));
 check('Adw.SpinRow.adjustment exists', Object.getOwnPropertyNames(Adw.SpinRow.prototype).includes('adjustment'));

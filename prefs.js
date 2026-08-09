@@ -9,6 +9,24 @@ import {
 import {buildAboutGroup} from './ui/aboutContent.js';
 import {buildUpdatesGroup} from './ui/updatesContent.js';
 
+function findInitialFocus(widget) {
+    if (!widget)
+        return null;
+
+    if (widget instanceof Adw.ComboRow ||
+        widget instanceof Adw.SwitchRow ||
+        widget instanceof Adw.SpinRow)
+        return widget;
+
+    for (let child = widget.get_first_child(); child; child = child.get_next_sibling()) {
+        const focusWidget = findInitialFocus(child);
+        if (focusWidget)
+            return focusWidget;
+    }
+
+    return null;
+}
+
 export default class LanguxPreferences extends ExtensionPreferences {
     async fillPreferencesWindow(window) {
         const settings = this.getSettings();
@@ -16,13 +34,20 @@ export default class LanguxPreferences extends ExtensionPreferences {
         const page = new Adw.PreferencesPage();
         page.add(buildTranslationGroup(settings));
         page.add(buildApiKeyGroup());
-        page.add(buildUpdatesGroup({
+        const updatesAboutGroup = new Adw.PreferencesGroup({title: 'Updates & About'});
+        buildUpdatesGroup({
             currentVersion: this.metadata['version-name'],
             window,
-        }));
-        page.add(buildAboutGroup({metadata: this.metadata, window}));
+            group: updatesAboutGroup,
+        });
+        buildAboutGroup({metadata: this.metadata, window, group: updatesAboutGroup});
+        page.add(updatesAboutGroup);
         window.add(page);
 
         window.set_title('Langux Settings');
+
+        const initialFocus = findInitialFocus(page);
+        if (initialFocus)
+            window.set_focus(initialFocus);
     }
 }
