@@ -7,7 +7,7 @@ import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 import {translate} from '../services/googleTranslate.js';
 import {AUTO_LANGUAGE, LANGUAGES, isExplicit, languageLabel, swapLanguages} from './languages.js';
-import {friendlyMessage, needsSettingsAction} from './errorMessages.js';
+import {friendlyMessage} from './errorMessages.js';
 import {TranslationCache} from './translationCache.js';
 import {TranslationController, TRANSLATION_DEBOUNCE_MS} from './translationController.js';
 
@@ -23,7 +23,6 @@ const TITLE_TEXT = 'Langux';
 const ENTRY_HINT = 'Enter text';
 const COPY_LABEL = 'Copy';
 const COPIED_LABEL = 'Copied ✓';
-const SETTINGS_LABEL = 'Go to Settings';
 const COPY_FEEDBACK_MS = 1500;
 const POPUP_WIDTH = 420;
 const ERROR_CLASS = 'langux-error';
@@ -199,9 +198,7 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
 
         this._actionRow = new St.BoxLayout({style_class: 'langux-actions-row'});
         this._copyButton = this._createActionButton(COPY_LABEL, COPY_ICON, () => this._copyResult());
-        this._settingsActionButton = this._createActionButton(SETTINGS_LABEL, SETTINGS_ICON, () => this._openSettings());
         this._actionRow.add_child(this._copyButton.button);
-        this._actionRow.add_child(this._settingsActionButton.button);
         resultArea.add_child(this._actionRow);
         content.add_child(resultArea);
 
@@ -422,7 +419,7 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
         this._resultLabel.visible = false;
         this._detectedLabel.visible = false;
         this._resultLabel.remove_style_class_name(ERROR_CLASS);
-        this._showAction(COPY_LABEL, false, false);
+        this._showAction(COPY_LABEL, false);
     }
 
     setResult(result) {
@@ -441,7 +438,7 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
             this._detectedLabel.visible = false;
         }
 
-        this._showAction(COPY_LABEL, true, false);
+        this._showAction(COPY_LABEL, true);
         this._focusEntry();
     }
 
@@ -453,7 +450,7 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
         this._resultLabel.clutter_text.text = friendlyMessage(error?.code);
         this._resultLabel.visible = true;
         this._detectedLabel.visible = false;
-        this._showAction(COPY_LABEL, false, needsSettingsAction(error?.code));
+        this._showAction(COPY_LABEL, false);
     }
 
     _clearResult() {
@@ -467,7 +464,7 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
         this._resultLabel.visible = false;
         this._detectedLabel.set_text('');
         this._detectedLabel.visible = false;
-        this._showAction(COPY_LABEL, false, false);
+        this._showAction(COPY_LABEL, false);
     }
 
     _openSettings() {
@@ -481,18 +478,17 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
         St.Clipboard.get_default().set_text(
             St.ClipboardType.CLIPBOARD,
             this._lastTranslatedText);
-        this._showAction(COPIED_LABEL, true, false);
+        this._showAction(COPIED_LABEL, true);
         this._clearCopyFeedback();
         this._copyFeedbackId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, COPY_FEEDBACK_MS, () => {
             this._copyFeedbackId = null;
-            this._showAction(COPY_LABEL, true, false);
+            this._showAction(COPY_LABEL, true);
             return false;
         });
     }
 
-    _showAction(copyLabel, copyVisible, settingsVisible) {
+    _showAction(copyLabel, copyVisible) {
         this._copyButton.button.visible = copyVisible;
-        this._settingsActionButton.button.visible = settingsVisible;
         this._copyButton.label.set_text(copyLabel);
     }
 
