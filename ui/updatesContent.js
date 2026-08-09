@@ -4,6 +4,7 @@ import Gtk from 'gi://Gtk';
 
 import {UpdateChecker, UpdateErrorCode} from '../services/updateChecker.js';
 import {createPreferencesDialog} from './dialogContent.js';
+import {createPreferenceButton} from './prefsWidgets.js';
 import {UPDATE_PAGE_URL} from './updateInfo.js';
 
 function buildActionGroup(button) {
@@ -24,11 +25,7 @@ export function buildUpdatesGroup({currentVersion, window, group: parentGroup = 
         title: 'Check for updates',
         subtitle: `Installed version: ${currentVersion}`,
     });
-    const checkButton = new Gtk.Button({
-        label: 'Check',
-        css_classes: ['flat'],
-        valign: Gtk.Align.CENTER,
-    });
+    const checkButton = createPreferenceButton('Check');
     row.add_suffix(checkButton);
     group.add(row);
 

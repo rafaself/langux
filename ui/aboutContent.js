@@ -1,6 +1,8 @@
 import Adw from 'gi://Adw';
 import Gtk from 'gi://Gtk';
 
+import {createPreferenceButton} from './prefsWidgets.js';
+
 function configureAboutDialog(widget) {
     if (!widget)
         return;
@@ -25,11 +27,7 @@ export function buildAboutGroup({metadata, window, group: parentGroup = null}) {
         title: `About ${metadata.name}`,
         subtitle: `Version ${version}`,
     });
-    const aboutButton = new Gtk.Button({
-        label: 'About',
-        css_classes: ['flat'],
-        valign: Gtk.Align.CENTER,
-    });
+    const aboutButton = createPreferenceButton('About');
     row.add_suffix(aboutButton);
     row.activatable_widget = aboutButton;
     group.add(row);

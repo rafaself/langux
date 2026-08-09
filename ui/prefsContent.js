@@ -4,6 +4,7 @@ import Gtk from 'gi://Gtk';
 import {clearCacheOverSessionBus} from '../services/cacheControl.js';
 import {SecretStore} from '../services/secretStore.js';
 import {AUTO_LANGUAGE, LANGUAGES, languageLabel} from './languages.js';
+import {createPreferenceButton} from './prefsWidgets.js';
 
 const SOURCE_CODES = [AUTO_LANGUAGE, ...LANGUAGES.map(l => l.code)];
 const TARGET_CODES = LANGUAGES.map(l => l.code);
@@ -65,10 +66,7 @@ export function buildTranslationGroup(settings) {
         title: 'Clear translation cache',
         subtitle: 'Remove successful translations from the running Shell session',
     });
-    const clearButton = new Gtk.Button({
-        label: 'Clear',
-        valign: Gtk.Align.CENTER,
-    });
+    const clearButton = createPreferenceButton('Clear');
     clearButton.connect('clicked', () => {
         try {
             clearCacheOverSessionBus();
@@ -88,11 +86,15 @@ export function buildApiKeyGroup() {
     const group = new Adw.PreferencesGroup({title: 'Google Cloud'});
     const row = new Adw.ActionRow({title: 'API Key'});
 
-    const configureButton = new Gtk.Button({label: 'Configure', css_classes: ['flat']});
-    const replaceButton = new Gtk.Button({label: 'Replace', css_classes: ['flat']});
-    const removeButton = new Gtk.Button({label: 'Remove', css_classes: ['flat']});
+    const configureButton = createPreferenceButton('Configure');
+    const replaceButton = createPreferenceButton('Replace');
+    const removeButton = createPreferenceButton('Remove');
 
-    const buttons = new Gtk.Box({orientation: Gtk.Orientation.HORIZONTAL, spacing: 8});
+    const buttons = new Gtk.Box({
+        orientation: Gtk.Orientation.HORIZONTAL,
+        spacing: 8,
+        valign: Gtk.Align.CENTER,
+    });
     buttons.append(configureButton);
     buttons.append(replaceButton);
     buttons.append(removeButton);

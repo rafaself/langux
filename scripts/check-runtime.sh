@@ -138,6 +138,7 @@ import {checkForUpdates, UpdateChecker} from './updateChecker.js';
 import {UPDATE_API_URL, UPDATE_PAGE_URL} from '../ui/updateInfo.js';
 import {buildAboutGroup} from '../ui/aboutContent.js';
 import {createPreferencesDialog} from '../ui/dialogContent.js';
+import {createPreferenceButton} from '../ui/prefsWidgets.js';
 import {buildShortcutsGroup} from '../ui/shortcutsContent.js';
 import {buildUpdatesGroup} from '../ui/updatesContent.js';
 
@@ -146,6 +147,7 @@ check('updateChecker module loads', typeof checkForUpdates === 'function');
 check('updateChecker exposes cancellation', typeof UpdateChecker === 'function');
 check('about Preferences module loads', typeof buildAboutGroup === 'function');
 check('preferences dialog helper loads', typeof createPreferencesDialog === 'function');
+check('preference button helper loads', typeof createPreferenceButton === 'function');
 check('shortcuts Preferences module loads', typeof buildShortcutsGroup === 'function');
 check('updates Preferences module loads', typeof buildUpdatesGroup === 'function');
 check('update API is fixed HTTPS GitHub URL',

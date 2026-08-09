@@ -2,6 +2,7 @@ import Adw from 'gi://Adw';
 import Gtk from 'gi://Gtk';
 
 import {createPreferencesDialog} from './dialogContent.js';
+import {createPreferenceButton} from './prefsWidgets.js';
 
 const MODIFIER_LABELS = {
     Alt: 'Alt',
@@ -81,11 +82,7 @@ export function buildShortcutsGroup({settings, window, group: parentGroup = null
         title: 'Shortcuts',
         subtitle: 'Keyboard shortcuts and translator actions',
     });
-    const showButton = new Gtk.Button({
-        label: 'Show',
-        css_classes: ['flat'],
-        valign: Gtk.Align.CENTER,
-    });
+    const showButton = createPreferenceButton('Show');
     row.add_suffix(showButton);
     row.activatable_widget = showButton;
     group.add(row);
