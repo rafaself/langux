@@ -1,7 +1,7 @@
 import Adw from 'gi://Adw';
 import Gtk from 'gi://Gtk';
 
-import {buildDialogContent, createHeaderDialog} from './dialogContent.js';
+import {createPreferencesDialog} from './dialogContent.js';
 
 const MODIFIER_LABELS = {
     Alt: 'Alt',
@@ -50,10 +50,7 @@ function buildShortcutRows(settings) {
         ['Open Preferences', 'Settings button'],
         ['Translate while typing', 'After 1 second idle'],
     ];
-    const group = new Adw.PreferencesGroup({
-        title: 'Shortcuts and actions',
-        width_request: 620,
-    });
+    const group = new Adw.PreferencesGroup({title: 'Shortcuts and actions'});
 
     for (const [action, command] of shortcuts) {
         const row = new Adw.ActionRow({title: action});
@@ -70,13 +67,10 @@ function buildShortcutRows(settings) {
 }
 
 function showShortcutsDialog(settings, window) {
-    const dialog = createHeaderDialog({
+    const dialog = createPreferencesDialog({
         title: 'Langux shortcuts',
-        contentWidth: 680,
-        content: buildDialogContent({
-            body: 'Keyboard shortcuts and available translator actions.',
-            child: buildShortcutRows(settings),
-        }),
+        description: 'Keyboard shortcuts and available translator actions.',
+        groups: [buildShortcutRows(settings)],
     });
     dialog.present(window);
 }

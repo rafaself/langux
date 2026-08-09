@@ -3,8 +3,20 @@ import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk';
 
 import {UpdateChecker, UpdateErrorCode} from '../services/updateChecker.js';
-import {buildDialogContent, createHeaderDialog} from './dialogContent.js';
+import {createPreferencesDialog} from './dialogContent.js';
 import {UPDATE_PAGE_URL} from './updateInfo.js';
+
+function buildActionGroup(button) {
+    const group = new Adw.PreferencesGroup();
+    const row = new Adw.ActionRow({
+        title: 'Open update page',
+        subtitle: 'View the stable release on GitHub',
+    });
+    row.add_suffix(button);
+    row.activatable_widget = button;
+    group.add(row);
+    return group;
+}
 
 export function buildUpdatesGroup({currentVersion, window, group: parentGroup = null}) {
     const group = parentGroup ?? new Adw.PreferencesGroup({title: 'Updates'});
@@ -37,11 +49,9 @@ export function buildUpdatesGroup({currentVersion, window, group: parentGroup = 
     }
 
     function showUpToDateDialog(info) {
-        const dialog = createHeaderDialog({
+        const dialog = createPreferencesDialog({
             title: 'Langux is up to date',
-            content: buildDialogContent({
-                body: `Current version: ${info.currentVersion}\nLatest version: ${info.latestVersion}`,
-            }),
+            description: `Current version: ${info.currentVersion}\nLatest version: ${info.latestVersion}`,
         });
         presentDialog(dialog);
     }
@@ -50,14 +60,12 @@ export function buildUpdatesGroup({currentVersion, window, group: parentGroup = 
         const openButton = new Gtk.Button({
             label: 'Open update page',
             css_classes: ['suggested-action'],
-            halign: Gtk.Align.END,
+            valign: Gtk.Align.CENTER,
         });
-        const dialog = createHeaderDialog({
+        const dialog = createPreferencesDialog({
             title: 'Update available',
-            content: buildDialogContent({
-                body: `A newer stable release is available.\n\nCurrent version: ${info.currentVersion}\nLatest version: ${info.latestVersion}\nRelease: ${info.releaseTitle}`,
-                child: openButton,
-            }),
+            description: `A newer stable release is available.\n\nCurrent version: ${info.currentVersion}\nLatest version: ${info.latestVersion}\nRelease: ${info.releaseTitle}`,
+            groups: [buildActionGroup(openButton)],
         });
         openButton.connect('clicked', () => {
             try {
@@ -73,11 +81,9 @@ export function buildUpdatesGroup({currentVersion, window, group: parentGroup = 
     }
 
     function showFailureDialog() {
-        const dialog = createHeaderDialog({
+        const dialog = createPreferencesDialog({
             title: 'Could not check for updates',
-            content: buildDialogContent({
-                body: 'Unable to check for updates. Please try again later.',
-            }),
+            description: 'Unable to check for updates. Please try again later.',
         });
         presentDialog(dialog);
     }

@@ -90,6 +90,9 @@ check('Adw.ToolbarView constructible', typeof Adw.ToolbarView === 'function');
 check('Adw.ToolbarView.add_top_bar callable', typeof Adw.ToolbarView.prototype.add_top_bar === 'function');
 check('Adw.ToolbarView.set_content callable', typeof Adw.ToolbarView.prototype.set_content === 'function');
 check('Adw.HeaderBar constructible', typeof Adw.HeaderBar === 'function');
+check('Adw.PreferencesDialog constructible', typeof Adw.PreferencesDialog === 'function');
+check('Adw.PreferencesDialog.add exists', Object.getOwnPropertyNames(Adw.PreferencesDialog.prototype).includes('add'));
+check('Adw.PreferencesPage.description exists', Object.getOwnPropertyNames(Adw.PreferencesPage.prototype).includes('description'));
 check('Adw.ActionRow.activatable_widget exists', Object.getOwnPropertyNames(Adw.ActionRow.prototype).includes('activatable_widget'));
 check('Adw.AboutDialog constructible', typeof Adw.AboutDialog === 'function');
 check('Adw.AboutDialog.present callable', typeof Adw.AboutDialog.prototype.present === 'function');
@@ -134,7 +137,7 @@ if typelib_exists "Soup-3.0"; then
 import {checkForUpdates, UpdateChecker} from './updateChecker.js';
 import {UPDATE_API_URL, UPDATE_PAGE_URL} from '../ui/updateInfo.js';
 import {buildAboutGroup} from '../ui/aboutContent.js';
-import {buildDialogContent, createHeaderDialog} from '../ui/dialogContent.js';
+import {createPreferencesDialog} from '../ui/dialogContent.js';
 import {buildShortcutsGroup} from '../ui/shortcutsContent.js';
 import {buildUpdatesGroup} from '../ui/updatesContent.js';
 
@@ -142,8 +145,7 @@ const check = (name, cond) => console.log(`RHECK: ${name} ${cond ? 'OK' : 'FAIL'
 check('updateChecker module loads', typeof checkForUpdates === 'function');
 check('updateChecker exposes cancellation', typeof UpdateChecker === 'function');
 check('about Preferences module loads', typeof buildAboutGroup === 'function');
-check('dialog content module loads', typeof createHeaderDialog === 'function');
-check('dialog body helper loads', typeof buildDialogContent === 'function');
+check('preferences dialog helper loads', typeof createPreferencesDialog === 'function');
 check('shortcuts Preferences module loads', typeof buildShortcutsGroup === 'function');
 check('updates Preferences module loads', typeof buildUpdatesGroup === 'function');
 check('update API is fixed HTTPS GitHub URL',
