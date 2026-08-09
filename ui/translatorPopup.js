@@ -3,6 +3,7 @@ import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import St from 'gi://St';
 
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 import {translate} from '../services/googleTranslate.js';
@@ -311,6 +312,8 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
         this._menuManager.addMenu(this._targetMenu);
 
         for (const menu of [this._sourceMenu, this._targetMenu]) {
+            menu.actor.hide();
+            Main.uiGroup.add_child(menu.actor);
             menu.connect('open-state-changed', (m, open) => {
                 if (!open && this.isOpen)
                     this._focusEntry();
