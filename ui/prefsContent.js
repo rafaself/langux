@@ -226,7 +226,7 @@ function _buildCacheSizeRow(settings) {
         ];
     const row = new Adw.ComboRow({
         title: 'Translation cache size',
-        subtitle: 'Maximum successful translations kept when caching is enabled; zero disables it',
+        subtitle: 'Maximum successful translations kept when caching is enabled',
     });
     const model = new Gtk.StringList();
     for (const option of options)
