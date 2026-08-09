@@ -8,10 +8,10 @@ import {AUTO_LANGUAGE, LANGUAGES, languageLabel} from './languages.js';
 const SOURCE_CODES = [AUTO_LANGUAGE, ...LANGUAGES.map(l => l.code)];
 const TARGET_CODES = LANGUAGES.map(l => l.code);
 const CACHE_SIZE_OPTIONS = [
-    {value: 0, label: '0 (Disabled)'},
+    {value: 0, label: '0'},
     {value: 50, label: '50'},
     {value: 100, label: '100'},
-    {value: 200, label: '200 (Recommended)'},
+    {value: 200, label: '200'},
     {value: 500, label: '500'},
     {value: 1000, label: '1000'},
 ];
