@@ -21,10 +21,12 @@ const SETTINGS_HINT = 'Open Langux preferences';
 const CLOSE_ICON = 'window-close-symbolic';
 const CLOSE_HINT = 'Close';
 const COPY_ICON = 'edit-copy-symbolic';
+const CLEAR_ICON = 'edit-clear-symbolic';
 const TITLE_TEXT = 'Langux';
 const ENTRY_HINT = 'Enter text';
 const RESULT_HINT = 'Translation';
 const COPY_LABEL = 'Copy';
+const CLEAR_LABEL = 'Clear';
 const COPIED_LABEL = 'Copied ✓';
 const COPY_FEEDBACK_MS = 1500;
 const POPUP_WIDTH = 420;
@@ -52,16 +54,22 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
         this._lastTranslatedText = null;
         this._focusEntryId = null;
         this._copyFeedbackId = null;
+        this._stageButtonPressId = null;
 
         this._buildContent();
         this._buildLanguageMenus();
         this._refreshLanguages();
+        this._stageButtonPressId = global.stage.connect(
+            'button-press-event',
+            this._onStageButtonPress.bind(this),
+        );
         this._controller = new TranslationController({
             translate,
             cache: new TranslationCache(this._settings.get_int('translation-cache-size')),
             cacheEnabled: this._settings.get_boolean('translation-cache-enabled'),
             source: this._settings.get_string('source-language'),
             target: this._settings.get_string('target-language'),
+            active: false,
             translateWhileTyping: this._settings.get_boolean('translate-while-typing'),
             debounceMs: TRANSLATION_DEBOUNCE_MS,
             schedule: (callback, delayMs) =>
@@ -90,8 +98,14 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
         });
 
         this.connect('open-state-changed', (_menu, open) => {
-            if (open) this._focusEntryLater();
-            else this._closeLanguageMenus();
+            if (open) {
+                this._controller?.setActive(true);
+                this._focusEntryLater();
+            } else {
+                this._controller?.setActive(false);
+                this._closeLanguageMenus();
+                this._clearEntryFocus();
+            }
         });
 
         this.connect('destroy', () => {
@@ -107,6 +121,7 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
             this._controller?.destroy();
             this._controller = null;
             this._clearCopyFeedback();
+            this._disconnectStageButtonPress();
         });
     }
 
@@ -133,6 +148,7 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
         }
         this._controller?.destroy();
         this._controller = null;
+        this._disconnectStageButtonPress();
         super.destroy();
     }
 
@@ -179,11 +195,22 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
         this._entry.clutter_text.y_expand = true;
         this._entry.clutter_text.x_align = Clutter.ActorAlign.START;
         this._entry.clutter_text.y_align = Clutter.ActorAlign.START;
+        this._clearButton = this._createActionButton(CLEAR_LABEL, CLEAR_ICON, () =>
+            this._clearInput(),
+        );
+        const inputActions = new St.BoxLayout({
+            style_class: 'langux-input-actions',
+            x_expand: true,
+        });
+        inputActions.add_child(new St.Widget({x_expand: true}));
+        inputActions.add_child(this._clearButton.button);
         this._entryTextChangedId = this._entry.clutter_text.connect('text-changed', () =>
-            this._controller?.setText(this._entry.get_text()),
+            this._onEntryTextChanged(),
         );
         this._entry.connect('key-press-event', this._onEntryKeyPress.bind(this));
         appContent.add_child(this._entry);
+        appContent.add_child(inputActions);
+        this._showClear(false);
 
         appContent.add_child(new St.Widget({style_class: 'langux-separator'}));
 
@@ -375,6 +402,7 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
         this._settings.set_string('source-language', swapped.source);
         this._settings.set_string('target-language', swapped.target);
         this._refreshLanguages();
+        this._translate();
     }
 
     _refreshLanguages() {
@@ -407,6 +435,27 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
         if (this._targetMenu?.isOpen) this._targetMenu.close();
     }
 
+    _disconnectStageButtonPress() {
+        if (this._stageButtonPressId === null) return;
+        global.stage.disconnect(this._stageButtonPressId);
+        this._stageButtonPressId = null;
+    }
+
+    _onStageButtonPress(_stage, event) {
+        if (!this.isOpen) return Clutter.EVENT_PROPAGATE;
+
+        const targetActor = global.stage.get_event_actor(event);
+        if (targetActor && this.actor.contains(targetActor) && !this._entry.contains(targetActor))
+            this._clearEntryFocus();
+
+        return Clutter.EVENT_PROPAGATE;
+    }
+
+    _clearEntryFocus() {
+        const keyFocus = global.stage.key_focus;
+        if (keyFocus && this._entry.contains(keyFocus)) global.stage.set_key_focus(null);
+    }
+
     _destroyLanguageMenus() {
         this._sourceMenu?.destroy();
         this._targetMenu?.destroy();
@@ -434,6 +483,15 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
 
     _translate() {
         this._controller?.translateNow();
+    }
+
+    _onEntryTextChanged() {
+        this._controller?.setText(this._entry.get_text());
+        this._showClear(this._entry.get_text().length > 0);
+    }
+
+    _clearInput() {
+        this._entry.set_text('');
     }
 
     clearCache() {
@@ -522,6 +580,13 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
         if (copyEnabled) this._copyButton.button.remove_style_class_name(COPY_DISABLED_CLASS);
         else this._copyButton.button.add_style_class_name(COPY_DISABLED_CLASS);
         this._copyButton.label.set_text(copyLabel);
+    }
+
+    _showClear(clearEnabled) {
+        this._clearButton.button.reactive = clearEnabled;
+        this._clearButton.button.can_focus = clearEnabled;
+        if (clearEnabled) this._clearButton.button.remove_style_class_name(COPY_DISABLED_CLASS);
+        else this._clearButton.button.add_style_class_name(COPY_DISABLED_CLASS);
     }
 
     _focusEntry() {

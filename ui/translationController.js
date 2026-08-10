@@ -3,6 +3,7 @@ import {TranslationCache, DEFAULT_TRANSLATION_CACHE_SIZE} from './translationCac
 export const TRANSLATION_DEBOUNCE_MS = 1000;
 
 const noop = () => {};
+const REQUEST_NOT_STARTED = Symbol('request-not-started');
 
 function defaultSchedule(callback, delayMs) {
     if (typeof globalThis.setTimeout !== 'function')
@@ -26,6 +27,10 @@ function isBlank(text) {
     return text.trim().length === 0;
 }
 
+function sameLanguage(source, target) {
+    return source === target;
+}
+
 /**
  * Coordinates input changes and cancellable translation requests without
  * depending on Shell, GTK, or a particular timer implementation.
@@ -41,6 +46,7 @@ export class TranslationController {
         cacheEnabled = false,
         source = 'auto',
         target = 'en',
+        active = true,
         translateWhileTyping = true,
         debounceMs = TRANSLATION_DEBOUNCE_MS,
         schedule = defaultSchedule,
@@ -63,6 +69,7 @@ export class TranslationController {
         this._cacheEnabled = Boolean(cacheEnabled);
         this._source = source;
         this._target = target;
+        this._active = Boolean(active);
         this._text = '';
         this._translateWhileTyping = Boolean(translateWhileTyping);
         this._debounceMs = debounceMs;
@@ -106,6 +113,10 @@ export class TranslationController {
         return this._cacheEnabled;
     }
 
+    get active() {
+        return this._active;
+    }
+
     get hasPendingTranslation() {
         return this._pendingTimer !== null;
     }
@@ -125,7 +136,23 @@ export class TranslationController {
         this._invalidateWork();
         this._onClear();
 
-        if (this._translateWhileTyping && !isBlank(nextText)) this._scheduleCurrentText();
+        if (
+            this._active &&
+            this._translateWhileTyping &&
+            !isBlank(nextText) &&
+            !sameLanguage(this._source, this._target)
+        )
+            this._scheduleCurrentText();
+        return true;
+    }
+
+    setActive(active) {
+        if (this._destroyed) return false;
+
+        const nextValue = Boolean(active);
+        if (nextValue === this._active) return false;
+        this._active = nextValue;
+        if (!nextValue) this.cancelWork();
         return true;
     }
 
@@ -149,17 +176,14 @@ export class TranslationController {
         this._translateWhileTyping = nextValue;
 
         if (!nextValue) {
-            // An in-flight request is still valid for its input/context. Only
-            // the not-yet-started debounce is invalidated by this setting.
-            if (this._pendingTimer !== null) {
-                this._generation++;
-                this._cancelPendingTimer();
-            }
+            this.cancelWork();
             return true;
         }
 
         if (
+            this._active &&
             !isBlank(this._text) &&
+            !sameLanguage(this._source, this._target) &&
             !this._activeRequest &&
             !sameKey(this._lastResultKey, this._currentKey())
         ) {
@@ -196,9 +220,22 @@ export class TranslationController {
         this._cacheGeneration++;
     }
 
-    translateNow() {
+    cancelWork() {
         if (this._destroyed) return false;
-        if (isBlank(this._text)) {
+
+        const hadWork = this._pendingTimer !== null || this._activeRequest !== null;
+        if (!hadWork) return false;
+
+        this._generation++;
+        this._cancelPendingTimer();
+        this._cancelActiveRequest();
+        this._onClear();
+        return true;
+    }
+
+    translateNow() {
+        if (this._destroyed || !this._active) return false;
+        if (isBlank(this._text) || sameLanguage(this._source, this._target)) {
             this._lastResultKey = null;
             this._invalidateWork();
             this._onClear();
@@ -233,7 +270,14 @@ export class TranslationController {
     }
 
     _scheduleCurrentText() {
-        if (this._destroyed || this._pendingTimer !== null || isBlank(this._text)) return;
+        if (
+            this._destroyed ||
+            !this._active ||
+            this._pendingTimer !== null ||
+            isBlank(this._text) ||
+            sameLanguage(this._source, this._target)
+        )
+            return;
 
         const generation = this._generation;
         const key = this._currentKey();
@@ -264,7 +308,13 @@ export class TranslationController {
     }
 
     _requestCurrentText() {
-        if (this._destroyed || isBlank(this._text)) return false;
+        if (
+            this._destroyed ||
+            !this._active ||
+            isBlank(this._text) ||
+            sameLanguage(this._source, this._target)
+        )
+            return false;
 
         const key = this._currentKey();
         if (this._activeRequest && sameKey(this._activeRequest.key, key)) return false;
@@ -292,15 +342,19 @@ export class TranslationController {
         this._onLoading();
 
         Promise.resolve()
-            .then(() =>
-                this._translate({
+            .then(() => {
+                if (!this._isCurrentRequest(request)) return REQUEST_NOT_STARTED;
+                return this._translate({
                     text: key.text,
                     source: key.source,
                     target: key.target,
                     cancellable: request.cancellable,
-                }),
-            )
-            .then((result) => this._completeRequest(request, result))
+                });
+            })
+            .then((result) => {
+                if (result === REQUEST_NOT_STARTED) return;
+                this._completeRequest(request, result);
+            })
             .catch((error) => this._failRequest(request, error));
         return true;
     }

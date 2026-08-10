@@ -50,6 +50,9 @@ function setup({
     translateWhileTyping = true,
     cacheEnabled = false,
     cacheSize = 20,
+    active = true,
+    source = 'auto',
+    target = 'en',
     translate,
 } = {}) {
     const scheduler = new FakeScheduler();
@@ -65,8 +68,9 @@ function setup({
         translate: provider,
         cache: new TranslationCache(cacheSize),
         cacheEnabled,
-        source: 'auto',
-        target: 'en',
+        active,
+        source,
+        target,
         translateWhileTyping,
         schedule: scheduler.schedule.bind(scheduler),
         cancelSchedule: scheduler.cancel.bind(scheduler),
@@ -118,6 +122,50 @@ test('manual mode waits for Enter and immediate translation cancels debounce', a
     assert.equal(requests[0].text, 'manual');
 });
 
+test('destroy before the provider starts prevents any provider call', async () => {
+    let calls = 0;
+    const {controller, scheduler} = setup({
+        translate: () => {
+            calls++;
+            return Promise.resolve({text: 'should not run'});
+        },
+    });
+
+    controller.setText('destroy before start');
+    scheduler.advance(1000);
+    controller.destroy();
+    await settle();
+    await settle();
+
+    assert.equal(calls, 0);
+});
+
+test('inactive controllers never schedule or start translations', async () => {
+    const {controller, scheduler, requests} = setup({active: false});
+
+    controller.setText('closed popup');
+    scheduler.advance(2000);
+    await settle();
+    assert.equal(requests.length, 0);
+    assert.equal(controller.translateNow(), false);
+
+    controller.setActive(true);
+    assert.equal(scheduler.timers.size, 0);
+    controller.setText('open popup');
+    assert.equal(scheduler.timers.size, 1);
+});
+
+test('equal source and target languages never start a translation', async () => {
+    const {controller, scheduler, requests} = setup({source: 'en', target: 'en'});
+
+    controller.setText('same language');
+    assert.equal(scheduler.timers.size, 0);
+    scheduler.advance(2000);
+    await settle();
+    assert.equal(requests.length, 0);
+    assert.equal(controller.translateNow(), false);
+});
+
 test('blank input clears pending work and never reaches the provider', async () => {
     const {controller, scheduler, requests, events} = setup();
 
@@ -145,6 +193,29 @@ test('runtime mode changes cancel pending debounce and can enable it for current
     controller.setText('manual now');
     scheduler.advance(2000);
     assert.equal(requests.length, 1);
+});
+
+test('disabling live translation cancels an active request', async () => {
+    const pending = deferred();
+    const {controller, scheduler, requests} = setup({
+        translate: (args) => {
+            requests.push(args);
+            return pending.promise;
+        },
+    });
+
+    controller.setText('stop live request');
+    scheduler.advance(1000);
+    await settle();
+    assert.equal(requests.length, 1);
+
+    assert.equal(controller.setTranslateWhileTyping(false), true);
+    assert.equal(controller.hasActiveRequest, false);
+    assert.equal(requests[0].cancellable.cancelled, true);
+
+    pending.resolve({text: 'stale'});
+    await settle();
+    await settle();
 });
 
 test('duplicate text changes do not add timers or duplicate requests', async () => {
@@ -369,4 +440,57 @@ test('destroy cancels pending work and clears the cache', async () => {
     assert.equal(requests.length, 0);
     assert.equal(controller.cache.size, 0);
     assert.equal(controller.translateNow(), false);
+});
+
+test('cancelWork cancels active requests and ignores their results', async () => {
+    const pending = deferred();
+    const {controller, scheduler, requests, events} = setup({
+        translate: (args) => {
+            requests.push(args);
+            return pending.promise;
+        },
+    });
+
+    controller.setText('close popup');
+    scheduler.advance(1000);
+    await settle();
+    assert.equal(requests.length, 1);
+
+    assert.equal(controller.cancelWork(), true);
+    assert.equal(controller.hasActiveRequest, false);
+    assert.equal(requests[0].cancellable.cancelled, true);
+
+    pending.resolve({text: 'must be ignored'});
+    await settle();
+    await settle();
+    assert.equal(
+        events.some((event) => event[1] === 'must be ignored'),
+        false,
+    );
+});
+
+test('deactivating cancels active requests and blocks later triggers', async () => {
+    const pending = deferred();
+    const {controller, scheduler, requests} = setup({
+        translate: (args) => {
+            requests.push(args);
+            return pending.promise;
+        },
+    });
+
+    controller.setText('toggle off');
+    scheduler.advance(1000);
+    await settle();
+    assert.equal(requests.length, 1);
+
+    assert.equal(controller.setActive(false), true);
+    assert.equal(controller.active, false);
+    assert.equal(controller.hasActiveRequest, false);
+    assert.equal(requests[0].cancellable.cancelled, true);
+    assert.equal(controller.translateNow(), false);
+
+    pending.resolve({text: 'must be ignored'});
+    await settle();
+    await settle();
+    assert.equal(requests.length, 1);
 });

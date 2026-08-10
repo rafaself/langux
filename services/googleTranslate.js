@@ -64,12 +64,25 @@ function translateServiceError(status, payload) {
     return new TranslateError(code, message);
 }
 
+function throwIfCancelled(cancellable) {
+    if (cancellable?.is_cancelled?.())
+        throw new TranslateError(ErrorCode.CANCELLED, 'Translation request cancelled.');
+}
+
 export async function translate({text, source, target, cancellable}) {
-    if (!text || !target)
+    if (
+        typeof text !== 'string' ||
+        text.trim().length === 0 ||
+        typeof target !== 'string' ||
+        target.trim().length === 0
+    )
         throw new TranslateError(
             ErrorCode.MALFORMED,
             'Both text and target language are required.',
         );
+
+    throwIfCancelled(cancellable);
+    if (source === target) return {text, detectedSourceLanguage: source};
 
     const apiKey = await SecretStore.getApiKey();
     if (!apiKey)
@@ -78,6 +91,7 @@ export async function translate({text, source, target, cancellable}) {
             'No Google Cloud API key configured.',
         );
 
+    throwIfCancelled(cancellable);
     const requestBody = {q: text, target, format: 'text'};
     if (source && source !== 'auto') requestBody.source = source;
 
@@ -92,6 +106,7 @@ export async function translate({text, source, target, cancellable}) {
     const session = new Soup.Session({timeout: REQUEST_TIMEOUT_SECONDS});
     let bytes;
     try {
+        throwIfCancelled(cancellable);
         bytes = await sendAndRead(session, message, cancellable ?? null);
     } catch (error) {
         throw normalizedError(error);
