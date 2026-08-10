@@ -4,142 +4,149 @@
   <img src="data/icon.svg" width="64" height="64" alt="Langux icon">
 </p>
 
-Langux is a local-first quick translator for GNOME Shell. Press a shortcut, type or
-paste text, translate it with Google Cloud Translation (Basic v2), copy the result.
-Live translation is enabled by default after a one-second pause, or can be switched
-to explicit-Enter mode. There is no backend, no accounts, no telemetry, and no
-persistent translation history.
+Langux is a keyboard-first, local-first translator for GNOME Shell: open a popup,
+type or paste text, translate it with Google Cloud Translation Basic v2, and copy
+the result. Translation requests go directly from your machine to Google; Langux
+has no backend, account system, telemetry, or persistent translation history.
 
-## Supported / tested versions
+## Features
 
-- GNOME Shell 49
-- GJS with ES modules (no legacy `imports` style)
-- libsoup3 and libsecret (GNOME 49 system libraries)
+- Open or toggle the translator with a configurable shortcut (`Super+T` by default).
+- Translate while typing after one second of inactivity, or use explicit Enter mode.
+- Use `Shift+Enter` for a new line; `Enter` and `Ctrl+Enter` translate in manual mode.
+- Detect the source language automatically, choose source and target languages, and swap them.
+- Copy translated text only through an explicit **Copy** action.
+- Optionally reuse successful translations with a bounded in-memory cache, disabled by default.
+- Store the Google API key in GNOME Keyring through libsecret, never in GSettings.
+- Check manually for stable releases from the Preferences window; updates are never automatic.
 
-Other GNOME releases may work but are not tested; `metadata.json` lists only the
-version validated on.
+## Compatibility and requirements
 
-## Requirements
+- GNOME Shell 49 on GNU/Linux, under X11 or Wayland.
+- GJS with modern ES modules, plus the GNOME 49 system libraries `libsoup3` and `libsecret`.
+- `gnome-extensions`, `curl`, and a SHA-256 tool (`sha256sum` or `shasum`) for release installation.
+- A Google Cloud project with billing enabled and the Cloud Translation API enabled.
 
-- GNOME Shell 49 on a GNU/Linux session (X11 or Wayland)
-- `gnome-extensions`, `curl`, and a `sha256sum`/`shasum` tool for the installer
-- A Google Cloud Translation **Basic v2** API key (see configuration below)
+Other GNOME Shell versions may work, but only the version listed in
+[`metadata.json`](metadata.json) is tested and supported by this project.
 
-## Install from a GitHub Release
+## Install a released version
+
+Download the installer, inspect it if desired, and run it with Bash:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/rafaself/langux/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/rafaself/langux/main/scripts/install.sh \
+  -o /tmp/langux-install.sh
+less /tmp/langux-install.sh
+bash /tmp/langux-install.sh
 ```
 
-The installer downloads the latest `langux.zip` and its SHA-256 checksum, verifies
-the checksum **before** installing, installs for the current user only (no `sudo`),
-cleans up temporary files, and prints the next steps.
+The installer resolves the latest GitHub Release, downloads the extension and its
+SHA-256 checksum, verifies the archive before installation, and installs only for
+the current user. It does not use `sudo`.
 
-Then enable the extension and restart the session:
+Enable Langux after installation:
 
 ```sh
 gnome-extensions enable langux@rafaself.github.io
 ```
 
-Restart the session (log out and back in) or, on X11, press `Alt+F2` and type `r`.
+Restart the session if necessary (log out and back in, or press `Alt+F2` and type
+`r` on X11). Open Preferences with:
 
-## Local development installation
+```sh
+gnome-extensions prefs langux@rafaself.github.io
+```
 
-```bash
+## Install from a checkout
+
+Use this path to test local changes:
+
+```sh
 git clone https://github.com/rafaself/langux.git
 cd langux
+npm ci
+npm run check
 scripts/dev-install.sh
 gnome-extensions enable langux@rafaself.github.io
 ```
 
-`dev-install.sh` runs `scripts/package.sh`, installs the archive with
-`gnome-extensions install --force` (current user only), and prints enable/restart
-hints. It fails clearly if `gnome-extensions` is unavailable.
+`scripts/dev-install.sh` packages the checked-out extension and installs it for the
+current user. The development dependencies are not included in the extension
+archive.
 
-## Check for updates
+## Configure Google Cloud Translation
 
-The *Updates* section in Preferences provides an optional, manual **Check for
-updates** action. Langux contacts the fixed GitHub Releases API only after you
-press the button and checks the latest stable release metadata. It does not send
-translation text or the Google API key, persist the update result, download
-release assets, install anything, or reload itself. If an update is available,
-**Open update page** opens the GitHub release page; installation remains handled
-by GNOME's extension tools. Langux performs no automatic or background update
-checks.
+1. Create or select a Google Cloud project and enable billing.
+2. Enable the **Cloud Translation API**.
+3. Create an API key and restrict it to the Cloud Translation API. Add appropriate
+   application restrictions and project quotas or budget alerts where possible.
+4. Open Langux Preferences, select **Google Cloud → Configure**, and paste the key.
+   Use **Replace** to change it or **Remove** to delete it.
 
-## Configure a Google Cloud API key
+The key is stored in GNOME Keyring and is never written to Langux settings, files,
+logs, URLs, or the repository. Langux sends it to Google only in the
+`X-Goog-Api-Key` HTTPS request header.
 
-Google Cloud Translation Basic v2 requires a paid Google Cloud project (with a
-billable billing account), an enabled Translation API, and an API key:
+## Preferences and behavior
 
-1. Create a Google Cloud project and enable billing.
-2. Enable the **Cloud Translation API** for the project.
-3. Generate an **API key** (Credentials → Create credentials → API key).
-4. Open Langux settings (`gnome-extensions prefs langux@rafaself.github.io`
-   or the gear button in the Langux popup).
-5. Under *Google Cloud*, click **Configure** and paste the key (click **Replace** to
-   update later, **Remove** to delete it).
+The defaults are source language `auto`, target language `en`, live translation
+enabled, and translation caching disabled.
 
-Security recommendations:
+- Live mode sends non-blank text after it has remained unchanged for one second.
+- Manual mode sends text only after `Enter` or `Ctrl+Enter`; `Shift+Enter` inserts a newline.
+- The cache is session-only and can hold 0–1000 successful translations. Setting it to
+  zero disables it; disabling or clearing the cache removes existing entries.
+- The cache is cleared when the extension is disabled and is never written to disk.
 
-- Restrict the key to the **Cloud Translation API** only (API restrictions).
-- Optionally restrict by IP/domain and set project-level quotas, budgets, and billing
-  alerts to cap costs.
-- The key is stored in **GNOME Keyring** (libsecret); it is never shown again after
-  configuring and is never stored in Langux's own settings.
+## Privacy and data flow
 
-Translation behavior:
+- Translation text is sent directly from the local machine to Google Cloud Translation
+  over HTTPS when live or manual translation is triggered.
+- Input, output, API keys, and update responses are not written to disk or logs.
+- Translated text is written to the system clipboard only when **Copy** is explicitly used.
+- The optional cache stays in memory for the current Shell session and is disabled by default.
+- Manual update checks contact only the fixed GitHub Releases API and request release
+  metadata. Langux does not download, install, or reload updates by itself.
 
-- *Translate while typing* is enabled by default and sends the current non-blank text
-  after it has been unchanged for one second. Disable it for manual Enter/Ctrl+Enter
-  translation.
-- Translation caching is disabled by default. Enable it to reuse successful
-  translations in a bounded in-memory LRU cache. The cache size is configurable from
-  0 to 1000 entries, and zero also disables it. Turning it off clears existing entries;
-  the cache is also cleared when Langux is disabled and can be cleared from this
-  settings page. It is never written to disk.
-
-## Privacy
-
-Langux has no backend and does not collect telemetry or persistent translation
-history. Live translation is a user-controlled preference enabled by default: after
-the one-second debounce, non-blank text is sent directly from the local machine to
-Google Cloud Translation over HTTPS. With live translation disabled, requests start
-only after Enter or Ctrl+Enter. Successful results may remain in a bounded in-memory
-LRU cache for the current Shell session only when the user enables caching; it is
-disabled by default, can be cleared, and is cleared when the extension is disabled.
-Turning caching off removes existing entries immediately. Input and output are never
-written to disk or logs. Translated text is only written to the system clipboard when
-the user explicitly clicks Copy. Nothing else is stored locally beyond the API key
-(GNOME Keyring) and this optional transient cache. Manual update checks contact
-GitHub only when requested, send release metadata requests only, and do not
-persist the response or download release assets. Installation remains under
-GNOME's control; Langux has no automatic background update checker.
+See [`SECURITY.md`](SECURITY.md) for the threat model and vulnerability reporting
+instructions.
 
 ## Uninstall
 
-```bash
+```sh
 gnome-extensions uninstall langux@rafaself.github.io
 ```
 
-(Optionally disable first.) The API key stays in GNOME Keyring; remove it from the
-Langux prefs window (or `seahorse`) if you want it gone.
+Removing the extension does not remove the API key from GNOME Keyring. Delete it
+from Langux Preferences before uninstalling, or remove it later with `seahorse`.
 
-## Development / logging
+## Development and checks
 
-```bash
-# watch Shell logs in a live session
-journalctl -f -o cat /usr/bin/gnome-shell
-# or with a grep for Langux plus errors
-journalctl -f | grep -iE "langux|gnome-shell.*(error|critical)"
+Install the pinned development tools with `npm ci`, then run the aggregate check:
 
-# pure-module unit tests (Node's built-in runner; no runtime dependencies)
-node --test
+```sh
+npm run check             # syntax, tests, Biome, schema, and GNOME runtime probe
+npm run format:check      # check formatting without changing files
+npm run format            # intentionally format the scoped JavaScript files
+scripts/package.sh        # build dist/langux.zip and its checksum
 ```
 
-Logging is minimal by design: translation input/output and the API key are never
-logged.
+The pure-module tests can also be run independently:
+
+```sh
+npm test
+```
+
+For live Shell logs:
+
+```sh
+journalctl -f -o cat /usr/bin/gnome-shell
+journalctl -f | grep -iE "langux|error|critical"
+```
+
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the contribution workflow.
 
 ## License
 
-GPL-3.0-or-later. See [LICENSE](LICENSE).
+Langux is licensed under [GPL-3.0-or-later](LICENSE).
