@@ -1,6 +1,7 @@
 import Clutter from 'gi://Clutter';
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
+import Pango from 'gi://Pango';
 import St from 'gi://St';
 
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
@@ -22,12 +23,14 @@ const CLOSE_HINT = 'Close';
 const COPY_ICON = 'edit-copy-symbolic';
 const TITLE_TEXT = 'Langux';
 const ENTRY_HINT = 'Enter text';
+const RESULT_HINT = 'Translation';
 const COPY_LABEL = 'Copy';
 const COPIED_LABEL = 'Copied ✓';
 const COPY_FEEDBACK_MS = 1500;
 const POPUP_WIDTH = 420;
 const ERROR_CLASS = 'langux-error';
 const INSENSITIVE_CLASS = 'langux-swap-insensitive';
+const RESULT_PLACEHOLDER_CLASS = 'langux-result-placeholder';
 const COPY_DISABLED_CLASS = 'langux-copy-disabled';
 
 export const TranslatorState = Object.freeze({
@@ -175,6 +178,12 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
         this._entry.clutter_text.max_length = 4096;
         this._entry.clutter_text.single_line_mode = false;
         this._entry.clutter_text.line_wrap = true;
+        this._entry.clutter_text.line_wrap_mode = Pango.WrapMode.WORD_CHAR;
+        this._entry.clutter_text.line_alignment = Pango.Alignment.LEFT;
+        this._entry.clutter_text.x_expand = true;
+        this._entry.clutter_text.y_expand = true;
+        this._entry.clutter_text.x_align = Clutter.ActorAlign.START;
+        this._entry.clutter_text.y_align = Clutter.ActorAlign.START;
         this._entryTextChangedId = this._entry.clutter_text.connect(
             'text-changed',
             () => this._controller?.setText(this._entry.get_text()));
@@ -196,12 +205,15 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
             visible: false,
         });
         this._resultLabel = new St.Label({
+            text: RESULT_HINT,
             style_class: 'langux-result-label',
             x_expand: true,
             x_align: Clutter.ActorAlign.START,
             y_align: Clutter.ActorAlign.START,
         });
+        this._resultLabel.add_style_class_name(RESULT_PLACEHOLDER_CLASS);
         this._resultLabel.clutter_text.line_wrap = true;
+        this._resultLabel.clutter_text.line_wrap_mode = Pango.WrapMode.WORD_CHAR;
         this._detectedLabel = new St.Label({style_class: 'langux-detected-label'});
         resultArea.add_child(this._spinner);
         resultArea.add_child(this._resultLabel);
@@ -436,6 +448,7 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
         this._lastTranslatedText = null;
         this._spinner.visible = true;
         this._resultLabel.visible = false;
+        this._resultLabel.remove_style_class_name(RESULT_PLACEHOLDER_CLASS);
         this._detectedLabel.visible = false;
         this._resultLabel.remove_style_class_name(ERROR_CLASS);
         this._showAction(COPY_LABEL, false);
@@ -446,6 +459,7 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
         this._lastTranslatedText = result.text;
         this._spinner.visible = false;
         this._resultLabel.remove_style_class_name(ERROR_CLASS);
+        this._resultLabel.remove_style_class_name(RESULT_PLACEHOLDER_CLASS);
         this._resultLabel.clutter_text.text = result.text;
         this._resultLabel.visible = true;
 
@@ -467,6 +481,7 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
         this._lastTranslatedText = null;
         this._spinner.visible = false;
         this._resultLabel.add_style_class_name(ERROR_CLASS);
+        this._resultLabel.remove_style_class_name(RESULT_PLACEHOLDER_CLASS);
         this._resultLabel.clutter_text.text = friendlyMessage(error?.code);
         this._resultLabel.visible = true;
         this._detectedLabel.visible = false;
@@ -480,8 +495,9 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
         this._lastTranslatedText = null;
         this._spinner.visible = false;
         this._resultLabel.remove_style_class_name(ERROR_CLASS);
-        this._resultLabel.clutter_text.text = '';
-        this._resultLabel.visible = false;
+        this._resultLabel.add_style_class_name(RESULT_PLACEHOLDER_CLASS);
+        this._resultLabel.clutter_text.text = RESULT_HINT;
+        this._resultLabel.visible = true;
         this._detectedLabel.set_text('');
         this._detectedLabel.visible = false;
         this._showAction(COPY_LABEL, false);

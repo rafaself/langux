@@ -78,8 +78,17 @@
     background-color: rgba(255, 255, 255, 0.15);
 }
 
-.langux-swap-insensitive {
+.langux-swap-button:insensitive,
+.langux-swap-button.langux-swap-insensitive {
+    background-color: rgba(255, 255, 255, 0.08);
     opacity: 0.35;
+}
+
+.langux-swap-button:insensitive:hover,
+.langux-swap-button:insensitive:active,
+.langux-swap-button.langux-swap-insensitive:hover,
+.langux-swap-button.langux-swap-insensitive:active {
+    background-color: rgba(255, 255, 255, 0.08);
 }
 
 .langux-entry {
@@ -100,6 +109,11 @@
 
 .langux-result-label {
     color: #f6f7f8;
+}
+
+.langux-result-placeholder {
+    color: rgba(255, 255, 255, 0.55);
+    opacity: 0.45;
 }
 
 .langux-detected-label {
