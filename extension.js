@@ -26,7 +26,7 @@ export default class LanguxExtension extends Extension {
         this._indicator = new PanelMenu.Button(0.0, 'Langux', true);
         this._icon = new St.Icon({
             gicon: this._iconForColorScheme(),
-            style_class: 'system-status-icon',
+            style_class: 'system-status-icon langux-panel-icon',
         });
         this._indicator.add_child(this._icon);
 

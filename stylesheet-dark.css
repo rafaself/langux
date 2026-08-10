@@ -1,6 +1,10 @@
 .langux-content {
     width: 420px;
-    spacing: 4px;
+    spacing: 12px;
+}
+
+.langux-panel-icon {
+    padding: 0;
 }
 
 .langux-app-content {
@@ -37,6 +41,7 @@
 .langux-title {
     font-size: 16px;
     font-weight: bold;
+    margin-left: 8px;
     padding: 4px 0 0;
 }
 

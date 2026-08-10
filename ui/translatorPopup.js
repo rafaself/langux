@@ -253,7 +253,7 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
     _buildHeaderAction(iconName, hint, onClick) {
         const button = new St.Button({
             style_class: 'langux-icon-button',
-            child: new St.Icon({icon_name: iconName, icon_size: 20}),
+            child: new St.Icon({icon_name: iconName, icon_size: 16}),
             can_focus: true,
             reactive: true,
             accessible_name: hint,
