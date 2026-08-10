@@ -176,6 +176,7 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
             width: POPUP_WIDTH,
         });
         this._entry.clutter_text.max_length = 4096;
+        this._entry.clutter_text.cursor_visible = true;
         this._entry.clutter_text.single_line_mode = false;
         this._entry.clutter_text.line_wrap = true;
         this._entry.clutter_text.line_wrap_mode = Pango.WrapMode.WORD_CHAR;
@@ -207,11 +208,15 @@ export class TranslatorPopup extends PopupMenu.PopupMenu {
         this._resultLabel = new St.Label({
             text: RESULT_HINT,
             style_class: 'langux-result-label',
+            reactive: true,
+            can_focus: true,
             x_expand: true,
             x_align: Clutter.ActorAlign.START,
             y_align: Clutter.ActorAlign.START,
         });
         this._resultLabel.add_style_class_name(RESULT_PLACEHOLDER_CLASS);
+        this._resultLabel.clutter_text.selectable = true;
+        this._resultLabel.clutter_text.editable = false;
         this._resultLabel.clutter_text.line_wrap = true;
         this._resultLabel.clutter_text.line_wrap_mode = Pango.WrapMode.WORD_CHAR;
         this._detectedLabel = new St.Label({style_class: 'langux-detected-label'});
