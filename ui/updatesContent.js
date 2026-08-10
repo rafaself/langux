@@ -40,8 +40,7 @@ export function buildUpdatesGroup({currentVersion, window, group: parentGroup = 
     });
 
     function presentDialog(dialog) {
-        if (disposed)
-            return;
+        if (disposed) return;
         dialog.present(window);
     }
 
@@ -67,9 +66,8 @@ export function buildUpdatesGroup({currentVersion, window, group: parentGroup = 
         openButton.connect('clicked', () => {
             try {
                 const launched = Gio.AppInfo.launch_default_for_uri(UPDATE_PAGE_URL, null);
-                if (launched === false)
-                    console.error('Could not open the Langux update page.');
-            } catch (error) {
+                if (launched === false) console.error('Could not open the Langux update page.');
+            } catch (_error) {
                 console.error('Could not open the Langux update page.');
             }
             dialog.close();
@@ -86,24 +84,19 @@ export function buildUpdatesGroup({currentVersion, window, group: parentGroup = 
     }
 
     async function check() {
-        if (disposed || checking)
-            return;
+        if (disposed || checking) return;
 
         checking = true;
         checkButton.sensitive = false;
         try {
             const info = await checker.check(currentVersion);
-            if (info.updateAvailable)
-                showUpdateAvailableDialog(info);
-            else
-                showUpToDateDialog(info);
+            if (info.updateAvailable) showUpdateAvailableDialog(info);
+            else showUpToDateDialog(info);
         } catch (error) {
-            if (!disposed && error?.code !== UpdateErrorCode.CANCELLED)
-                showFailureDialog();
+            if (!disposed && error?.code !== UpdateErrorCode.CANCELLED) showFailureDialog();
         } finally {
             checking = false;
-            if (!disposed)
-                checkButton.sensitive = true;
+            if (!disposed) checkButton.sensitive = true;
         }
     }
 

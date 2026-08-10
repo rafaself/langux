@@ -1,3 +1,4 @@
 # dist — local package output (see scripts/package.sh)
 /dist/
+node_modules/
 schemas/gschemas.compiled

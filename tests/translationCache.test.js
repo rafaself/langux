@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 
 import {TranslationCache, translationCacheKey} from '../ui/translationCache.js';
 
-const result = text => ({text});
+const result = (text) => ({text});
 
 test('cache keys include source, target, and exact raw text', () => {
     const cache = new TranslationCache(4);
@@ -16,8 +16,10 @@ test('cache keys include source, target, and exact raw text', () => {
     assert.equal(cache.get('pt', 'pt', 'hello').text, 'hello');
     assert.equal(cache.get('en', 'en', 'hello').text, 'hello');
     assert.equal(cache.get('en', 'pt', ' hello').text, ' olá');
-    assert.notEqual(translationCacheKey('en', 'pt', 'hello'),
-        translationCacheKey('en', 'pt', ' hello'));
+    assert.notEqual(
+        translationCacheKey('en', 'pt', 'hello'),
+        translationCacheKey('en', 'pt', ' hello'),
+    );
 });
 
 test('cache refreshes recency on reads and evicts the least recent entry', () => {

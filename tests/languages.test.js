@@ -11,11 +11,12 @@ import {
 } from '../ui/languages.js';
 
 test('target languages match the issue list, excluding auto', () => {
-    assert.deepEqual(LANGUAGES.map(l => l.code), [
-        'en', 'pt', 'es', 'ja', 'fr', 'de', 'it', 'ko', 'zh',
-    ]);
-    assert.ok(LANGUAGES.every(l => l.code !== AUTO_LANGUAGE));
-    assert.ok(LANGUAGES.every(l => l.label.length > 0));
+    assert.deepEqual(
+        LANGUAGES.map((l) => l.code),
+        ['en', 'pt', 'es', 'ja', 'fr', 'de', 'it', 'ko', 'zh'],
+    );
+    assert.ok(LANGUAGES.every((l) => l.code !== AUTO_LANGUAGE));
+    assert.ok(LANGUAGES.every((l) => l.label.length > 0));
 });
 
 test('auto is the only non-explicit source', () => {

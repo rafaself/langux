@@ -6,8 +6,7 @@ export function createPreferencesDialog({title, description, groups = [], conten
         content_width: contentWidth,
     });
     const page = new Adw.PreferencesPage({description});
-    for (const group of groups)
-        page.add(group);
+    for (const group of groups) page.add(group);
     dialog.add(page);
     return dialog;
 }

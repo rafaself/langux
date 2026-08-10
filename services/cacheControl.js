@@ -27,11 +27,7 @@ export function clearCacheOverSessionBus() {
         CACHE_BUS_NAME,
         CACHE_OBJECT_PATH,
         CACHE_INTERFACE_NAME,
-        null);
-    proxy.call_sync(
-        'ClearCache',
         null,
-        Gio.DBusCallFlags.NONE,
-        1000,
-        null);
+    );
+    proxy.call_sync('ClearCache', null, Gio.DBusCallFlags.NONE, 1000, null);
 }

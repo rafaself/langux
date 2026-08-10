@@ -133,7 +133,7 @@ journalctl -f -o cat /usr/bin/gnome-shell
 # or with a grep for Langux plus errors
 journalctl -f | grep -iE "langux|gnome-shell.*(error|critical)"
 
-# unit tests (pure modules, no npm dependencies)
+# pure-module unit tests (Node's built-in runner; no runtime dependencies)
 node --test
 ```
 

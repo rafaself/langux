@@ -2,11 +2,7 @@ import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import Soup from 'gi://Soup?version=3.0';
 
-import {
-    UPDATE_API_URL,
-    getUpdateInfo,
-    normalizeVersion,
-} from '../ui/updateInfo.js';
+import {UPDATE_API_URL, getUpdateInfo, normalizeVersion} from '../ui/updateInfo.js';
 
 export const UPDATE_REQUEST_TIMEOUT_SECONDS = 10;
 
@@ -27,7 +23,7 @@ export class UpdateCheckError extends Error {
 
 function callAsync(asyncFn, finishFn, ...args) {
     return new Promise((resolve, reject) => {
-        args.push((sourceObject, result) => {
+        args.push((_sourceObject, result) => {
             try {
                 resolve(finishFn(result));
             } catch (error) {
@@ -44,17 +40,19 @@ function sendAndRead(session, message, cancellable) {
         session.send_and_read_finish.bind(session),
         message,
         GLib.PRIORITY_DEFAULT,
-        cancellable);
+        cancellable,
+    );
 }
 
 function isCancelled(error, cancellable) {
-    return error?.code === Gio.IOErrorEnum.CANCELLED ||
-        (typeof cancellable?.is_cancelled === 'function' && cancellable.is_cancelled());
+    return (
+        error?.code === Gio.IOErrorEnum.CANCELLED ||
+        (typeof cancellable?.is_cancelled === 'function' && cancellable.is_cancelled())
+    );
 }
 
 function normalizeRequestError(error, cancellable) {
-    if (error instanceof UpdateCheckError)
-        return error;
+    if (error instanceof UpdateCheckError) return error;
     if (isCancelled(error, cancellable))
         return new UpdateCheckError(UpdateErrorCode.CANCELLED, 'Update check cancelled.');
     return new UpdateCheckError(UpdateErrorCode.NETWORK, 'Unable to reach GitHub.');
@@ -63,19 +61,22 @@ function normalizeRequestError(error, cancellable) {
 function bytesToJson(bytes) {
     try {
         const data = bytes?.toArray?.();
-        if (!data)
-            throw new Error('Missing response body.');
+        if (!data) throw new Error('Missing response body.');
         return JSON.parse(new TextDecoder().decode(data));
-    } catch (error) {
+    } catch (_error) {
         throw new UpdateCheckError(
             UpdateErrorCode.MALFORMED,
-            'GitHub returned malformed release metadata.');
+            'GitHub returned malformed release metadata.',
+        );
     }
 }
 
 function requestArguments(currentVersionOrOptions, maybeCancellable) {
-    if (currentVersionOrOptions && typeof currentVersionOrOptions === 'object' &&
-        Object.hasOwn(currentVersionOrOptions, 'currentVersion')) {
+    if (
+        currentVersionOrOptions &&
+        typeof currentVersionOrOptions === 'object' &&
+        Object.hasOwn(currentVersionOrOptions, 'currentVersion')
+    ) {
         return {
             currentVersion: currentVersionOrOptions.currentVersion,
             cancellable: currentVersionOrOptions.cancellable ?? null,
@@ -96,13 +97,15 @@ function requestArguments(currentVersionOrOptions, maybeCancellable) {
 export async function checkForUpdates(currentVersionOrOptions, maybeCancellable) {
     const {currentVersion, cancellable} = requestArguments(
         currentVersionOrOptions,
-        maybeCancellable);
+        maybeCancellable,
+    );
     const activeCancellable = cancellable ?? new Gio.Cancellable();
 
     if (!normalizeVersion(currentVersion))
         throw new UpdateCheckError(
             UpdateErrorCode.MALFORMED,
-            'The installed version is malformed.');
+            'The installed version is malformed.',
+        );
 
     const message = Soup.Message.new('GET', UPDATE_API_URL);
     message.request_headers.replace('Accept', 'application/vnd.github+json');
@@ -123,7 +126,8 @@ export async function checkForUpdates(currentVersionOrOptions, maybeCancellable)
     if (message.status_code < 200 || message.status_code >= 300)
         throw new UpdateCheckError(
             UpdateErrorCode.HTTP,
-            `GitHub returned HTTP ${message.status_code}.`);
+            `GitHub returned HTTP ${message.status_code}.`,
+        );
 
     let payload;
     try {
@@ -134,10 +138,11 @@ export async function checkForUpdates(currentVersionOrOptions, maybeCancellable)
 
     try {
         return getUpdateInfo(currentVersion, payload);
-    } catch (error) {
+    } catch (_error) {
         throw new UpdateCheckError(
             UpdateErrorCode.MALFORMED,
-            'GitHub returned invalid release metadata.');
+            'GitHub returned invalid release metadata.',
+        );
     }
 }
 
@@ -155,8 +160,7 @@ export class UpdateChecker {
         const cancellable = new Gio.Cancellable();
         this._cancellable = cancellable;
         return checkForUpdates({currentVersion, cancellable}).finally(() => {
-            if (this._cancellable === cancellable)
-                this._cancellable = null;
+            if (this._cancellable === cancellable) this._cancellable = null;
         });
     }
 

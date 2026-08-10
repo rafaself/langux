@@ -21,21 +21,15 @@ function formatShortcut(shortcut) {
         return '';
     });
 
-    if (!key)
-        return modifiers.join('+');
-    if (key.length === 1)
-        return [...modifiers, key.toUpperCase()].join('+');
+    if (!key) return modifiers.join('+');
+    if (key.length === 1) return [...modifiers, key.toUpperCase()].join('+');
 
-    const keyLabel = key
-        .replace(/[_-]/g, ' ')
-        .replace(/\b\w/g, letter => letter.toUpperCase());
+    const keyLabel = key.replace(/[_-]/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
     return [...modifiers, keyLabel].join('+');
 }
 
 function configuredOpenShortcut(settings) {
-    const shortcuts = settings.get_strv('open-shortcut')
-        .map(formatShortcut)
-        .filter(Boolean);
+    const shortcuts = settings.get_strv('open-shortcut').map(formatShortcut).filter(Boolean);
     return shortcuts.length > 0 ? shortcuts.join(' or ') : 'Unassigned';
 }
 
@@ -55,12 +49,14 @@ function buildShortcutRows(settings) {
 
     for (const [action, command] of shortcuts) {
         const row = new Adw.ActionRow({title: action});
-        row.add_suffix(new Gtk.Label({
-            label: command,
-            css_classes: ['dim-label'],
-            selectable: false,
-            valign: Gtk.Align.CENTER,
-        }));
+        row.add_suffix(
+            new Gtk.Label({
+                label: command,
+                css_classes: ['dim-label'],
+                selectable: false,
+                valign: Gtk.Align.CENTER,
+            }),
+        );
         group.add(row);
     }
 

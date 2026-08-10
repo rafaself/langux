@@ -4,11 +4,9 @@ import Gtk from 'gi://Gtk';
 import {createPreferenceButton} from './prefsWidgets.js';
 
 function configureAboutDialog(widget) {
-    if (!widget)
-        return;
+    if (!widget) return;
 
-    if (widget instanceof Gtk.Label)
-        widget.selectable = false;
+    if (widget instanceof Gtk.Label) widget.selectable = false;
 
     if (widget instanceof Adw.ActionRow && widget.visible && widget.title === '_Website')
         widget.title = 'GitHub';

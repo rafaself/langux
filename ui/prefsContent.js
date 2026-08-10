@@ -6,8 +6,8 @@ import {SecretStore} from '../services/secretStore.js';
 import {AUTO_LANGUAGE, LANGUAGES, languageLabel} from './languages.js';
 import {createPreferenceButton} from './prefsWidgets.js';
 
-const SOURCE_CODES = [AUTO_LANGUAGE, ...LANGUAGES.map(l => l.code)];
-const TARGET_CODES = LANGUAGES.map(l => l.code);
+const SOURCE_CODES = [AUTO_LANGUAGE, ...LANGUAGES.map((l) => l.code)];
+const TARGET_CODES = LANGUAGES.map((l) => l.code);
 const CACHE_SIZE_OPTIONS = [
     {value: 0, label: '0'},
     {value: 50, label: '50'},
@@ -23,7 +23,8 @@ export function buildTranslationGroup(settings) {
     const sourceRow = _buildLanguageRow(
         'Default source',
         SOURCE_CODES,
-        settings.get_string('source-language'));
+        settings.get_string('source-language'),
+    );
     sourceRow.connect('notify::selected', () => {
         settings.set_string('source-language', SOURCE_CODES[sourceRow.selected]);
     });
@@ -31,7 +32,8 @@ export function buildTranslationGroup(settings) {
     const targetRow = _buildLanguageRow(
         'Default target',
         TARGET_CODES,
-        settings.get_string('target-language'));
+        settings.get_string('target-language'),
+    );
     targetRow.connect('notify::selected', () => {
         settings.set_string('target-language', TARGET_CODES[targetRow.selected]);
     });
@@ -102,7 +104,7 @@ export function buildApiKeyGroup() {
 
     function refresh() {
         SecretStore.hasApiKey()
-            .then(has => {
+            .then((has) => {
                 row.subtitle = has ? 'Configured ✓' : 'Not configured';
                 configureButton.visible = !has;
                 replaceButton.visible = has;
@@ -134,8 +136,7 @@ export function buildApiKeyGroup() {
             default_response: 'save',
             close_response: 'cancel',
         });
-        if (dialogParent())
-            dialog.set_transient_for(dialogParent());
+        if (dialogParent()) dialog.set_transient_for(dialogParent());
         dialog.set_extra_child(entry);
         dialog.add_response('cancel', 'Cancel');
         dialog.add_response('save', 'Save');
@@ -143,17 +144,13 @@ export function buildApiKeyGroup() {
         entry.connect('notify::text', () => {
             dialog.set_response_enabled('save', entry.get_text().trim().length > 0);
         });
-        dialog.connect('response', (dialog_, response) => {
-            if (response !== 'save')
-                return;
+        dialog.connect('response', (_dialog, response) => {
+            if (response !== 'save') return;
 
             const key = entry.get_text().trim();
-            if (!key)
-                return;
+            if (!key) return;
 
-            SecretStore.saveApiKey(key)
-                .then(refresh)
-                .catch(notifyError);
+            SecretStore.saveApiKey(key).then(refresh).catch(notifyError);
         });
         dialog.present();
     }
@@ -165,17 +162,13 @@ export function buildApiKeyGroup() {
             default_response: 'cancel',
             close_response: 'cancel',
         });
-        if (dialogParent())
-            dialog.set_transient_for(dialogParent());
+        if (dialogParent()) dialog.set_transient_for(dialogParent());
         dialog.add_response('cancel', 'Cancel');
         dialog.add_response('remove', 'Remove');
         dialog.set_response_appearance('remove', Adw.ResponseAppearance.DESTRUCTIVE);
-        dialog.connect('response', (dialog_, response) => {
-            if (response !== 'remove')
-                return;
-            SecretStore.deleteApiKey()
-                .then(refresh)
-                .catch(notifyError);
+        dialog.connect('response', (_dialog, response) => {
+            if (response !== 'remove') return;
+            SecretStore.deleteApiKey().then(refresh).catch(notifyError);
         });
         dialog.present();
     }
@@ -187,8 +180,7 @@ export function buildApiKeyGroup() {
             body: 'Accessing the keyring failed. See the journal for details.',
             close_response: 'close',
         });
-        if (dialogParent())
-            dialog.set_transient_for(dialogParent());
+        if (dialogParent()) dialog.set_transient_for(dialogParent());
         dialog.add_response('close', 'Close');
         dialog.present();
     }
@@ -206,8 +198,7 @@ function _buildLanguageRow(title, codes, selectedCode) {
     const row = new Adw.ComboRow({title});
 
     const model = new Gtk.StringList();
-    for (const code of codes)
-        model.append(languageLabel(code));
+    for (const code of codes) model.append(languageLabel(code));
     row.model = model;
 
     const index = codes.indexOf(selectedCode);
@@ -217,24 +208,26 @@ function _buildLanguageRow(title, codes, selectedCode) {
 
 function _buildCacheSizeRow(settings) {
     const currentSize = settings.get_int('translation-cache-size');
-    const options = CACHE_SIZE_OPTIONS.some(option => option.value === currentSize)
+    const options = CACHE_SIZE_OPTIONS.some((option) => option.value === currentSize)
         ? CACHE_SIZE_OPTIONS
         : [
-            ...CACHE_SIZE_OPTIONS.slice(0, CACHE_SIZE_OPTIONS.findIndex(
-                option => option.value > currentSize)),
-            {value: currentSize, label: `${currentSize} (Current)`},
-            ...CACHE_SIZE_OPTIONS.slice(CACHE_SIZE_OPTIONS.findIndex(
-                option => option.value > currentSize)),
-        ];
+              ...CACHE_SIZE_OPTIONS.slice(
+                  0,
+                  CACHE_SIZE_OPTIONS.findIndex((option) => option.value > currentSize),
+              ),
+              {value: currentSize, label: `${currentSize} (Current)`},
+              ...CACHE_SIZE_OPTIONS.slice(
+                  CACHE_SIZE_OPTIONS.findIndex((option) => option.value > currentSize),
+              ),
+          ];
     const row = new Adw.ComboRow({
         title: 'Translation cache size',
         subtitle: 'Maximum successful translations kept when caching is enabled',
     });
     const model = new Gtk.StringList();
-    for (const option of options)
-        model.append(option.label);
+    for (const option of options) model.append(option.label);
     row.model = model;
-    row.selected = options.findIndex(option => option.value === currentSize);
+    row.selected = options.findIndex((option) => option.value === currentSize);
     row.connect('notify::selected', () => {
         settings.set_int('translation-cache-size', options[row.selected].value);
     });

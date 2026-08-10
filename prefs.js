@@ -2,27 +2,24 @@ import Adw from 'gi://Adw';
 
 import {ExtensionPreferences} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
-import {
-    buildApiKeyGroup,
-    buildTranslationGroup,
-} from './ui/prefsContent.js';
+import {buildApiKeyGroup, buildTranslationGroup} from './ui/prefsContent.js';
 import {buildAboutGroup} from './ui/aboutContent.js';
 import {buildShortcutsGroup} from './ui/shortcutsContent.js';
 import {buildUpdatesGroup} from './ui/updatesContent.js';
 
 function findInitialFocus(widget) {
-    if (!widget)
-        return null;
+    if (!widget) return null;
 
-    if (widget instanceof Adw.ComboRow ||
+    if (
+        widget instanceof Adw.ComboRow ||
         widget instanceof Adw.SwitchRow ||
-        widget instanceof Adw.SpinRow)
+        widget instanceof Adw.SpinRow
+    )
         return widget;
 
     for (let child = widget.get_first_child(); child; child = child.get_next_sibling()) {
         const focusWidget = findInitialFocus(child);
-        if (focusWidget)
-            return focusWidget;
+        if (focusWidget) return focusWidget;
     }
 
     return null;
@@ -49,7 +46,6 @@ export default class LanguxPreferences extends ExtensionPreferences {
         window.set_title('Langux Settings');
 
         const initialFocus = findInitialFocus(page);
-        if (initialFocus)
-            window.set_focus(initialFocus);
+        if (initialFocus) window.set_focus(initialFocus);
     }
 }

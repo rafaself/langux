@@ -42,12 +42,10 @@ export class TranslationCache {
     }
 
     get(source, target, rawText) {
-        if (this._capacity === 0)
-            return undefined;
+        if (this._capacity === 0) return undefined;
 
         const key = translationCacheKey(source, target, rawText);
-        if (!this._entries.has(key))
-            return undefined;
+        if (!this._entries.has(key)) return undefined;
 
         const value = this._entries.get(key);
         this._entries.delete(key);
@@ -56,13 +54,13 @@ export class TranslationCache {
     }
 
     has(source, target, rawText) {
-        return this._capacity > 0 && this._entries.has(
-            translationCacheKey(source, target, rawText));
+        return (
+            this._capacity > 0 && this._entries.has(translationCacheKey(source, target, rawText))
+        );
     }
 
     set(source, target, rawText, result) {
-        if (this._capacity === 0)
-            return;
+        if (this._capacity === 0) return;
 
         const key = translationCacheKey(source, target, rawText);
         this._entries.delete(key);

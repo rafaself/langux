@@ -1,4 +1,17 @@
 {
     "private": true,
-    "type": "module"
+    "type": "module",
+    "scripts": {
+        "test": "node --test",
+        "check:syntax": "for file in extension.js prefs.js ui/*.js services/*.js tests/*.js; do node --input-type=module --check < \"$file\" || exit 1; done",
+        "check:style": "biome check .",
+        "format": "biome format --write .",
+        "format:check": "biome format .",
+        "check:runtime": "scripts/check-runtime.sh",
+        "check:schema": "glib-compile-schemas schemas/",
+        "check": "npm run check:syntax && npm test && npm run check:style && npm run check:schema && npm run check:runtime"
+    },
+    "devDependencies": {
+        "@biomejs/biome": "2.5.7"
+    }
 }

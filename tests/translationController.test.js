@@ -27,8 +27,7 @@ class FakeScheduler {
         do {
             ran = false;
             for (const [id, timer] of [...this.timers]) {
-                if (timer.at > this.now)
-                    continue;
+                if (timer.at > this.now) continue;
                 this.timers.delete(id);
                 timer.callback();
                 ran = true;
@@ -56,10 +55,12 @@ function setup({
     const scheduler = new FakeScheduler();
     const events = [];
     const requests = [];
-    const provider = translate ?? (args => {
-        requests.push(args);
-        return Promise.resolve({text: `translated:${args.text}`});
-    });
+    const provider =
+        translate ??
+        ((args) => {
+            requests.push(args);
+            return Promise.resolve({text: `translated:${args.text}`});
+        });
     const controller = new TranslationController({
         translate: provider,
         cache: new TranslationCache(cacheSize),
@@ -70,18 +71,23 @@ function setup({
         schedule: scheduler.schedule.bind(scheduler),
         cancelSchedule: scheduler.cancel.bind(scheduler),
         createCancellable: () => {
-            const cancellable = {cancelled: false, cancel() { this.cancelled = true; }};
+            const cancellable = {
+                cancelled: false,
+                cancel() {
+                    this.cancelled = true;
+                },
+            };
             return cancellable;
         },
         onLoading: () => events.push(['loading']),
-        onResult: result => events.push(['result', result.text]),
-        onError: error => events.push(['error', error.code]),
+        onResult: (result) => events.push(['result', result.text]),
+        onError: (error) => events.push(['error', error.code]),
         onClear: () => events.push(['clear']),
     });
     return {controller, scheduler, events, requests};
 }
 
-const settle = () => new Promise(resolve => setImmediate(resolve));
+const settle = () => new Promise((resolve) => setImmediate(resolve));
 
 test('typing debounces, resets the delay, and preserves exact request text', async () => {
     const {controller, scheduler, requests, events} = setup();
@@ -235,7 +241,7 @@ test('cache hits avoid a second provider request', async () => {
     await settle();
 
     assert.equal(requests.length, 1);
-    assert.equal(events.filter(event => event[0] === 'result').length, 2);
+    assert.equal(events.filter((event) => event[0] === 'result').length, 2);
 });
 
 test('Enter-style immediate translation cancels an existing debounce', async () => {
@@ -254,7 +260,7 @@ test('stale async responses cannot update output or cache', async () => {
     const second = deferred();
     const {controller, scheduler, events, requests} = setup({
         cacheEnabled: true,
-        translate: args => {
+        translate: (args) => {
             requests.push(args);
             return requests.length === 1 ? first.promise : second.promise;
         },
@@ -269,19 +275,26 @@ test('stale async responses cannot update output or cache', async () => {
 
     first.resolve({text: 'old'});
     await settle();
-    assert.equal(events.some(event => event[1] === 'old'), false);
+    assert.equal(
+        events.some((event) => event[1] === 'old'),
+        false,
+    );
     assert.equal(controller.cache.get('auto', 'en', 'first'), undefined);
 
     second.resolve({text: 'new'});
     await settle();
-    assert.equal(events.some(event => event[1] === 'new'), true);
+    assert.equal(
+        events.some((event) => event[1] === 'new'),
+        true,
+    );
     assert.equal(controller.cache.get('auto', 'en', 'second').text, 'new');
 });
 
 test('failed requests are not cached and can be retried', async () => {
     let calls = 0;
-    const {controller, scheduler, requests} = setup({cacheEnabled: true,
-        translate: args => {
+    const {controller, scheduler, requests} = setup({
+        cacheEnabled: true,
+        translate: (args) => {
             requests.push(args);
             calls++;
             return calls === 1
@@ -304,10 +317,13 @@ test('failed requests are not cached and can be retried', async () => {
 
 test('clearing during a request prevents that response from repopulating cache', async () => {
     const pending = deferred();
-    const {controller, scheduler, requests} = setup({cacheEnabled: true, translate: args => {
-        requests.push(args);
-        return pending.promise;
-    }});
+    const {controller, scheduler, requests} = setup({
+        cacheEnabled: true,
+        translate: (args) => {
+            requests.push(args);
+            return pending.promise;
+        },
+    });
 
     controller.setText('in flight');
     scheduler.advance(1000);
@@ -322,10 +338,12 @@ test('clearing during a request prevents that response from repopulating cache',
 
 test('context changes cancel requests without automatically retrying', async () => {
     const pending = deferred();
-    const {controller, scheduler, requests, events} = setup({translate: args => {
-        requests.push(args);
-        return pending.promise;
-    }});
+    const {controller, scheduler, requests, events} = setup({
+        translate: (args) => {
+            requests.push(args);
+            return pending.promise;
+        },
+    });
 
     controller.setText('context');
     scheduler.advance(1000);
@@ -334,7 +352,10 @@ test('context changes cancel requests without automatically retrying', async () 
     pending.resolve({text: 'stale'});
     await settle();
     assert.equal(requests.length, 1);
-    assert.equal(events.some(event => event[1] === 'stale'), false);
+    assert.equal(
+        events.some((event) => event[1] === 'stale'),
+        false,
+    );
     assert.equal(controller.hasPendingTranslation, false);
 });
 

@@ -4,16 +4,15 @@ const SCHEMA_NAME = 'org.gnome.shell.extensions.langux.ApiKey';
 const SERVICE_ATTRIBUTE = 'google-translation';
 const ITEM_LABEL = 'Langux Google Translation API key';
 
-const schema = new Secret.Schema(
-    SCHEMA_NAME,
-    Secret.SchemaFlags.NONE,
-    {service: Secret.SchemaAttributeType.STRING});
+const schema = new Secret.Schema(SCHEMA_NAME, Secret.SchemaFlags.NONE, {
+    service: Secret.SchemaAttributeType.STRING,
+});
 
 const attributes = {service: SERVICE_ATTRIBUTE};
 
 function callAsync(asyncFn, finishFn, ...args) {
     return new Promise((resolve, reject) => {
-        args.push((source, result) => {
+        args.push((_source, result) => {
             try {
                 resolve(finishFn(result));
             } catch (error) {
@@ -31,7 +30,8 @@ export const SecretStore = {
             Secret.password_lookup_finish,
             schema,
             attributes,
-            null);
+            null,
+        );
         return password !== null;
     },
 
@@ -41,7 +41,8 @@ export const SecretStore = {
             Secret.password_lookup_finish,
             schema,
             attributes,
-            null);
+            null,
+        );
     },
 
     async saveApiKey(key) {
@@ -53,7 +54,8 @@ export const SecretStore = {
             Secret.COLLECTION_DEFAULT,
             ITEM_LABEL,
             key,
-            null);
+            null,
+        );
     },
 
     async deleteApiKey() {
@@ -62,6 +64,7 @@ export const SecretStore = {
             Secret.password_clear_finish,
             schema,
             attributes,
-            null);
+            null,
+        );
     },
 };

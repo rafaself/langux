@@ -1,7 +1,5 @@
-export const UPDATE_API_URL =
-    'https://api.github.com/repos/rafaself/langux/releases/latest';
-export const UPDATE_PAGE_URL =
-    'https://github.com/rafaself/langux/releases/latest';
+export const UPDATE_API_URL = 'https://api.github.com/repos/rafaself/langux/releases/latest';
+export const UPDATE_PAGE_URL = 'https://github.com/rafaself/langux/releases/latest';
 
 // Descriptive aliases keep the source of the update metadata explicit at call
 // sites while both URLs remain fixed constants.
@@ -29,12 +27,10 @@ export class UpdateInfoError extends Error {
  * back; release and comparison helpers reject them with UpdateInfoError.
  */
 export function normalizeVersion(version) {
-    if (typeof version !== 'string')
-        return null;
+    if (typeof version !== 'string') return null;
 
     const match = VERSION_PATTERN.exec(version);
-    if (!match)
-        return null;
+    if (!match) return null;
 
     return `${match[1]}.${match[2]}.${match[3]}`;
 }
@@ -55,11 +51,12 @@ export function compareVersions(left, right) {
     const rightParts = requireVersion(right, 'Version').split('.');
 
     for (let index = 0; index < leftParts.length; index++) {
-        if (leftParts[index] === rightParts[index])
-            continue;
+        if (leftParts[index] === rightParts[index]) continue;
         return leftParts[index].length < rightParts[index].length ||
             (leftParts[index].length === rightParts[index].length &&
-                leftParts[index] < rightParts[index]) ? -1 : 1;
+                leftParts[index] < rightParts[index])
+            ? -1
+            : 1;
     }
     return 0;
 }
@@ -98,9 +95,7 @@ export function getUpdateInfo(currentVersion, releasePayload) {
         latestVersion: release.version,
         releaseTitle: release.title,
         updateAvailable,
-        status: updateAvailable
-            ? UPDATE_STATUS.UPDATE_AVAILABLE
-            : UPDATE_STATUS.UP_TO_DATE,
+        status: updateAvailable ? UPDATE_STATUS.UPDATE_AVAILABLE : UPDATE_STATUS.UP_TO_DATE,
         releaseUrl: UPDATE_PAGE_URL,
     };
 }

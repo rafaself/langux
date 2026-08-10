@@ -7,7 +7,11 @@ import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 
-import {createCacheControlObject, CACHE_BUS_NAME, CACHE_OBJECT_PATH} from './services/cacheControl.js';
+import {
+    createCacheControlObject,
+    CACHE_BUS_NAME,
+    CACHE_OBJECT_PATH,
+} from './services/cacheControl.js';
 import {TranslatorPopup} from './ui/translatorPopup.js';
 
 const SHORTCUT_BINDING = 'open-shortcut';
@@ -30,9 +34,9 @@ export default class LanguxExtension extends Extension {
         });
         this._indicator.add_child(this._icon);
 
-        this._colorSchemeChangedId = St.Settings.get().connect(
-            'notify::color-scheme',
-            () => { this._icon.gicon = this._iconForColorScheme(); });
+        this._colorSchemeChangedId = St.Settings.get().connect('notify::color-scheme', () => {
+            this._icon.gicon = this._iconForColorScheme();
+        });
 
         this._popup = new TranslatorPopup(this._indicator, this._settings);
         this._popup.onOpenSettings = () => this.openPreferences();
@@ -47,7 +51,8 @@ export default class LanguxExtension extends Extension {
             this._settings,
             Meta.KeyBindingFlags.NONE,
             Shell.ActionMode.NORMAL | Shell.ActionMode.OVERVIEW | Shell.ActionMode.POPUP,
-            () => this._popup.toggle());
+            () => this._popup.toggle(),
+        );
     }
 
     disable() {
@@ -69,21 +74,20 @@ export default class LanguxExtension extends Extension {
     }
 
     _exportCacheControl() {
-        this._cacheControlObject = createCacheControlObject(
-            () => this._popup?.clearCache());
+        this._cacheControlObject = createCacheControlObject(() => this._popup?.clearCache());
         this._cacheBusOwnerId = Gio.bus_own_name(
             Gio.BusType.SESSION,
             CACHE_BUS_NAME,
             Gio.BusNameOwnerFlags.NONE,
-            connection => {
-                if (!this._cacheControlObject || !this._popup)
-                    return;
+            (connection) => {
+                if (!this._cacheControlObject || !this._popup) return;
                 this._cacheBusConnection = connection;
                 this._cacheControlObject.export(connection, CACHE_OBJECT_PATH);
                 this._cacheControlExported = true;
             },
             null,
-            () => this._unexportCacheControl());
+            () => this._unexportCacheControl(),
+        );
     }
 
     _unexportCacheControl() {
@@ -105,7 +109,6 @@ export default class LanguxExtension extends Extension {
 
     _iconForColorScheme() {
         const name = Main.getStyleVariant() === 'dark' ? ICON_DARK_UI : ICON_LIGHT_UI;
-        return Gio.FileIcon.new(
-            Gio.File.new_for_path(`${this.path}/${name}`));
+        return Gio.FileIcon.new(Gio.File.new_for_path(`${this.path}/${name}`));
     }
 }

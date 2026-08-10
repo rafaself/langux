@@ -11,14 +11,15 @@ function defaultSchedule(callback, delayMs) {
 }
 
 function defaultCancelSchedule(sourceId) {
-    if (typeof globalThis.clearTimeout === 'function')
-        globalThis.clearTimeout(sourceId);
+    if (typeof globalThis.clearTimeout === 'function') globalThis.clearTimeout(sourceId);
 }
 
 function sameKey(left, right) {
-    return left?.source === right?.source &&
+    return (
+        left?.source === right?.source &&
         left?.target === right?.target &&
-        left?.text === right?.text;
+        left?.text === right?.text
+    );
 }
 
 function isBlank(text) {
@@ -114,28 +115,23 @@ export class TranslationController {
     }
 
     setText(rawText) {
-        if (this._destroyed)
-            return false;
+        if (this._destroyed) return false;
 
         const nextText = rawText ?? '';
-        if (nextText === this._text)
-            return false;
+        if (nextText === this._text) return false;
 
         this._text = nextText;
         this._lastResultKey = null;
         this._invalidateWork();
         this._onClear();
 
-        if (this._translateWhileTyping && !isBlank(nextText))
-            this._scheduleCurrentText();
+        if (this._translateWhileTyping && !isBlank(nextText)) this._scheduleCurrentText();
         return true;
     }
 
     setContext(source, target) {
-        if (this._destroyed)
-            return false;
-        if (source === this._source && target === this._target)
-            return false;
+        if (this._destroyed) return false;
+        if (source === this._source && target === this._target) return false;
 
         this._source = source;
         this._target = target;
@@ -146,12 +142,10 @@ export class TranslationController {
     }
 
     setTranslateWhileTyping(enabled) {
-        if (this._destroyed)
-            return false;
+        if (this._destroyed) return false;
 
         const nextValue = Boolean(enabled);
-        if (nextValue === this._translateWhileTyping)
-            return false;
+        if (nextValue === this._translateWhileTyping) return false;
         this._translateWhileTyping = nextValue;
 
         if (!nextValue) {
@@ -164,31 +158,30 @@ export class TranslationController {
             return true;
         }
 
-        if (!isBlank(this._text) && !this._activeRequest &&
-            !sameKey(this._lastResultKey, this._currentKey())) {
+        if (
+            !isBlank(this._text) &&
+            !this._activeRequest &&
+            !sameKey(this._lastResultKey, this._currentKey())
+        ) {
             this._scheduleCurrentText();
         }
         return true;
     }
 
     setCacheSize(size) {
-        if (this._destroyed)
-            return;
+        if (this._destroyed) return;
         this._cache.resize(size);
     }
 
     setCacheEnabled(enabled) {
-        if (this._destroyed)
-            return false;
+        if (this._destroyed) return false;
 
         const nextValue = Boolean(enabled);
-        if (nextValue === this._cacheEnabled)
-            return false;
+        if (nextValue === this._cacheEnabled) return false;
 
         this._cacheEnabled = nextValue;
         this._cacheGeneration++;
-        if (!nextValue)
-            this._cache.clear();
+        if (!nextValue) this._cache.clear();
         return true;
     }
 
@@ -198,15 +191,13 @@ export class TranslationController {
      * not inserted after this clear action.
      */
     clearCache() {
-        if (this._destroyed)
-            return;
+        if (this._destroyed) return;
         this._cache.clear();
         this._cacheGeneration++;
     }
 
     translateNow() {
-        if (this._destroyed)
-            return false;
+        if (this._destroyed) return false;
         if (isBlank(this._text)) {
             this._lastResultKey = null;
             this._invalidateWork();
@@ -215,16 +206,14 @@ export class TranslationController {
         }
 
         const currentKey = this._currentKey();
-        if (this._activeRequest && sameKey(this._activeRequest.key, currentKey))
-            return false;
+        if (this._activeRequest && sameKey(this._activeRequest.key, currentKey)) return false;
 
         this._cancelPendingTimer();
         return this._requestCurrentText();
     }
 
     destroy() {
-        if (this._destroyed)
-            return;
+        if (this._destroyed) return;
         this._destroyed = true;
         this._generation++;
         this._cancelPendingTimer();
@@ -244,15 +233,17 @@ export class TranslationController {
     }
 
     _scheduleCurrentText() {
-        if (this._destroyed || this._pendingTimer !== null || isBlank(this._text))
-            return;
+        if (this._destroyed || this._pendingTimer !== null || isBlank(this._text)) return;
 
         const generation = this._generation;
         const key = this._currentKey();
         this._pendingTimer = this._schedule(() => {
             this._pendingTimer = null;
-            if (this._destroyed || generation !== this._generation ||
-                !sameKey(key, this._currentKey())) {
+            if (
+                this._destroyed ||
+                generation !== this._generation ||
+                !sameKey(key, this._currentKey())
+            ) {
                 return;
             }
             this._requestCurrentText();
@@ -260,27 +251,23 @@ export class TranslationController {
     }
 
     _cancelPendingTimer() {
-        if (this._pendingTimer === null)
-            return;
+        if (this._pendingTimer === null) return;
         this._cancelSchedule(this._pendingTimer);
         this._pendingTimer = null;
     }
 
     _cancelActiveRequest() {
-        if (!this._activeRequest)
-            return;
+        if (!this._activeRequest) return;
         const request = this._activeRequest;
         this._activeRequest = null;
         request.cancellable?.cancel?.();
     }
 
     _requestCurrentText() {
-        if (this._destroyed || isBlank(this._text))
-            return false;
+        if (this._destroyed || isBlank(this._text)) return false;
 
         const key = this._currentKey();
-        if (this._activeRequest && sameKey(this._activeRequest.key, key))
-            return false;
+        if (this._activeRequest && sameKey(this._activeRequest.key, key)) return false;
 
         this._generation++;
         this._cancelActiveRequest();
@@ -305,42 +292,47 @@ export class TranslationController {
         this._onLoading();
 
         Promise.resolve()
-            .then(() => this._translate({
-                text: key.text,
-                source: key.source,
-                target: key.target,
-                cancellable: request.cancellable,
-            }))
-            .then(result => this._completeRequest(request, result))
-            .catch(error => this._failRequest(request, error));
+            .then(() =>
+                this._translate({
+                    text: key.text,
+                    source: key.source,
+                    target: key.target,
+                    cancellable: request.cancellable,
+                }),
+            )
+            .then((result) => this._completeRequest(request, result))
+            .catch((error) => this._failRequest(request, error));
         return true;
     }
 
     _isCurrentRequest(request) {
-        return !this._destroyed && this._activeRequest === request &&
+        return (
+            !this._destroyed &&
+            this._activeRequest === request &&
             request.generation === this._generation &&
-            sameKey(request.key, this._currentKey());
+            sameKey(request.key, this._currentKey())
+        );
     }
 
     _completeRequest(request, result) {
-        if (!this._isCurrentRequest(request))
-            return;
+        if (!this._isCurrentRequest(request)) return;
 
         this._activeRequest = null;
-        if (request.cacheEnabled && this._cacheEnabled &&
-            request.cacheGeneration === this._cacheGeneration)
+        if (
+            request.cacheEnabled &&
+            this._cacheEnabled &&
+            request.cacheGeneration === this._cacheGeneration
+        )
             this._cache.set(request.key.source, request.key.target, request.key.text, result);
         this._lastResultKey = request.key;
         this._onResult(result);
     }
 
     _failRequest(request, error) {
-        if (!this._isCurrentRequest(request))
-            return;
+        if (!this._isCurrentRequest(request)) return;
 
         this._activeRequest = null;
-        if (error?.code === 'cancelled')
-            return;
+        if (error?.code === 'cancelled') return;
         this._onError(error);
     }
 }
