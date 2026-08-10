@@ -1,7 +1,7 @@
 # Langux
 
 <p align="left">
-  <img src="data/icon.svg" width="64" height="64" alt="Langux icon">
+  <img src="data/icon-readme.svg" width="64" height="64" alt="Langux icon">
 </p>
 
 Langux is a keyboard-first, local-first translator for GNOME Shell: open a popup,
