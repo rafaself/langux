@@ -1,5 +1,14 @@
 .langux-content {
     width: 420px;
+    spacing: 12px;
+}
+
+#panel .panel-button .langux-panel-icon {
+    padding: 0;
+}
+
+.langux-app-content {
+    spacing: 0px;
 }
 
 .langux-header {
@@ -7,12 +16,12 @@
 }
 
 .langux-header-actions {
-    spacing: 6px;
+    spacing: 8px;
 }
 
 .langux-icon-button {
     border-radius: 8px;
-    padding: 2px 6px;
+    padding: 4px;
 }
 
 .langux-icon-button:hover,
@@ -20,22 +29,32 @@
     background-color: rgba(255, 255, 255, 0.15);
 }
 
+.langux-icon-button:focus,
+.langux-source-button:focus,
+.langux-target-button:focus,
+.langux-swap-button:focus,
+.langux-action-button:focus {
+    outline: 4px solid #99c1f1;
+    -st-outline-radius: 8px;
+}
+
 .langux-title {
-    font-size: 13px;
+    font-size: 16px;
     font-weight: bold;
-    padding: 6px 0 10px;
+    margin-left: 8px;
+    padding: 4px 0 0;
 }
 
 .langux-language-row {
-    spacing: 10px;
-    padding-bottom: 10px;
+    spacing: 8px;
+    padding-bottom: 8px;
 }
 
 .langux-source-button,
 .langux-target-button {
     border-radius: 8px;
     background-color: rgba(255, 255, 255, 0.08);
-    padding: 3px 10px;
+    padding: 4px 8px;
 }
 
 .langux-source-button:hover,
@@ -46,13 +65,13 @@
 }
 
 .langux-language-button-content {
-    spacing: 6px;
+    spacing: 4px;
 }
 
 .langux-swap-button {
     border-radius: 8px;
     background-color: rgba(255, 255, 255, 0.08);
-    padding: 2px 8px;
+    padding: 4px 8px;
 }
 
 .langux-swap-arrows {
@@ -64,19 +83,28 @@
     background-color: rgba(255, 255, 255, 0.15);
 }
 
-.langux-swap-insensitive {
+.langux-swap-button:insensitive,
+.langux-swap-button.langux-swap-insensitive {
+    background-color: rgba(255, 255, 255, 0.08);
     opacity: 0.35;
+}
+
+.langux-swap-button:insensitive:hover,
+.langux-swap-button:insensitive:active,
+.langux-swap-button.langux-swap-insensitive:hover,
+.langux-swap-button.langux-swap-insensitive:active {
+    background-color: rgba(255, 255, 255, 0.08);
 }
 
 .langux-entry {
     min-height: 64px;
-    border-radius: 10px;
-    padding: 6px 10px;
+    border-radius: 8px;
+    padding: 4px 8px;
 }
 
 .langux-separator {
-    border-top: 1px solid rgba(255, 255, 255, 0.15);
-    margin: 10px 0 8px;
+    border-top: 4px solid rgba(255, 255, 255, 0.15);
+    margin: 8px 0 8px;
 }
 
 .langux-result-area {
@@ -88,19 +116,28 @@
     color: #f6f7f8;
 }
 
+.langux-result-placeholder {
+    color: rgba(255, 255, 255, 0.55);
+    opacity: 0.45;
+}
+
 .langux-detected-label {
     color: rgba(255, 255, 255, 0.55);
-    font-size: 11px;
+    font-size: 12px;
 }
 
 .langux-actions-row {
     spacing: 8px;
 }
 
+.langux-copy-disabled {
+    opacity: 0.45;
+}
+
 .langux-action-button {
     border-radius: 8px;
     background-color: rgba(255, 255, 255, 0.08);
-    padding: 3px 10px;
+    padding: 4px 8px;
 }
 
 .langux-action-button:hover,
@@ -109,16 +146,9 @@
 }
 
 .langux-action-button-content {
-    spacing: 6px;
+    spacing: 4px;
 }
 
 .langux-error {
     color: #ff8080;
-}
-
-.langux-footer {
-    color: rgba(255, 255, 255, 0.55);
-    font-size: 11px;
-    min-height: 0;
-    padding: 6px 0 0;
 }

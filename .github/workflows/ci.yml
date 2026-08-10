@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y libglib2.0-bin
+
+      - name: Install development dependencies
+        run: npm ci
+
+      - name: Run checks
+        run: npm run check
+
+      - name: Build release archive
+        run: scripts/package.sh
+
+      - name: Verify release archive
+        run: |
+          test -f dist/langux.zip
+          test -f dist/langux.zip.sha256
+          (cd dist && sha256sum -c langux.zip.sha256)

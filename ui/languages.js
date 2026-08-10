@@ -13,7 +13,7 @@ export const LANGUAGES = [
 ];
 
 export function hasLanguage(code) {
-    return LANGUAGES.some(language => language.code === code);
+    return LANGUAGES.some((language) => language.code === code);
 }
 
 export function isExplicit(code) {
@@ -21,14 +21,12 @@ export function isExplicit(code) {
 }
 
 export function languageLabel(code) {
-    if (code === AUTO_LANGUAGE)
-        return 'Auto detect';
-    const language = LANGUAGES.find(l => l.code === code);
+    if (code === AUTO_LANGUAGE) return 'Auto detect';
+    const language = LANGUAGES.find((l) => l.code === code);
     return language ? language.label : code;
 }
 
 export function swapLanguages(source, target) {
-    if (!isExplicit(source))
-        return null;
+    if (!isExplicit(source)) return null;
     return {source: target, target: source};
 }

@@ -1,8 +1,9 @@
 # Security Policy
 
 Langux is a local-first GNOME Shell extension. Its threat surface is intentionally
-small: it stores one credential (a Google Cloud API key) and makes HTTPS requests to
-Google Cloud Translation when the user explicitly asks for a translation.
+small: it stores one credential (a Google Cloud API key), makes HTTPS requests to
+Google Cloud Translation after an explicit request or, when enabled, a one-second
+pause in typing, and can query GitHub release metadata after a manual user request.
 
 ## Secret handling
 
@@ -11,10 +12,15 @@ Google Cloud Translation when the user explicitly asks for a translation.
 - Keys must never be committed to the repository, embedded in code, or logged.
 - The key is sent to Google Cloud only, over HTTPS, in the `X-Goog-Api-Key` request
   header — never in URLs or query strings.
-- Langux never logs or persists source or translated text, and keeps no translation
-  history.
+- Langux never logs or persists source or translated text. When explicitly enabled,
+  successful results can be held in a bounded in-memory LRU cache for the current
+  Shell session; caching is disabled by default, cleared on disable, and can be
+  disabled or cleared from preferences.
 - Langux has no backend and collects no telemetry. Translation requests go directly
   from your machine to `translation.googleapis.com`.
+- Update checks are optional and manual. They contact only the fixed GitHub Releases
+  API when requested, send no translation text or API key, and do not persist the
+  response or download release assets.
 
 ## Reporting a vulnerability
 
@@ -33,9 +39,12 @@ guidance as soon as a fix is verified.
 ## Trust model
 
 - Code: the repository, including the installer scripts, is fully auditable and
-  installed per-user; nothing is fetched or executed at runtime beyond the packaged
-  extension files.
+  installed per-user. Runtime update checks fetch release metadata only; they never
+  fetch or execute release assets.
 - Installer: `scripts/install.sh` verifies the SHA-256 of the downloaded archive
   against a checksum published on the same GitHub Release before installing.
-- Network: HTTPS only, against Google Cloud Translation, only on explicit user
-  action.
+- Network: HTTPS only, against Google Cloud Translation on explicit user action or
+  while the user-controlled live-translation setting is enabled, and against the
+  fixed GitHub Releases API only after an explicit update-check action. Langux does
+  not perform automatic background update checks or install/reload itself; GNOME
+  tools handle installation.

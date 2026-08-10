@@ -13,7 +13,14 @@ test('maps every translator error code to the spec-friendly message', () => {
 });
 
 test('known codes never leak raw messages or payloads', () => {
-    for (const code of ['missing-credential', 'unauthorized', 'network', 'quota', 'server', 'malformed'])
+    for (const code of [
+        'missing-credential',
+        'unauthorized',
+        'network',
+        'quota',
+        'server',
+        'malformed',
+    ])
         assert.doesNotMatch(friendlyMessage(code), /(error|message|null|undefined|status)/i);
 });
 
