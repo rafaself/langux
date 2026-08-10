@@ -48,4 +48,4 @@ jobs:
         run: |
           test -f dist/langux.zip
           test -f dist/langux.zip.sha256
-          sha256sum -c dist/langux.zip.sha256
+          (cd dist && sha256sum -c langux.zip.sha256)
