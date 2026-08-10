@@ -1,4 +1,5 @@
 import Adw from 'gi://Adw';
+import GLib from 'gi://GLib';
 
 import {ExtensionPreferences} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
@@ -25,6 +26,20 @@ function findInitialFocus(widget) {
     return null;
 }
 
+function focusLater(window, widget) {
+    let focusSourceId = GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
+        focusSourceId = null;
+        if (widget.get_root() === window) window.set_focus(widget);
+        return GLib.SOURCE_REMOVE;
+    });
+
+    window.connect('destroy', () => {
+        if (focusSourceId === null) return;
+        GLib.source_remove(focusSourceId);
+        focusSourceId = null;
+    });
+}
+
 export default class LanguxPreferences extends ExtensionPreferences {
     async fillPreferencesWindow(window) {
         const settings = this.getSettings();
@@ -46,6 +61,6 @@ export default class LanguxPreferences extends ExtensionPreferences {
         window.set_title('Langux Settings');
 
         const initialFocus = findInitialFocus(page);
-        if (initialFocus) window.set_focus(initialFocus);
+        if (initialFocus) focusLater(window, initialFocus);
     }
 }
