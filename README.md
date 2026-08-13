@@ -9,6 +9,8 @@ type or paste text, translate it with Google Cloud Translation Basic v2, and cop
 the result. Translation requests go directly from your machine to Google; Langux
 has no backend, account system, telemetry, or persistent translation history.
 
+<img width="493" height="333" alt="image" src="https://github.com/user-attachments/assets/167fb53b-2986-47e8-8806-8ae155a7246c" />
+
 ## Features
 
 - Open or toggle the translator with a configurable shortcut (`Super+T` by default).
