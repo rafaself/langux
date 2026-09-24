@@ -1,6 +1,7 @@
 //! Platform-independent types shared by Langux translation behavior.
 
 mod languages;
+mod translation_cache;
 mod translation_controller;
 mod translation_debounce;
 
@@ -8,8 +9,10 @@ pub use languages::{
     Language, LanguagePair, LanguagePairError, LanguageSwapError, find_supported_language,
     supported_languages,
 };
+pub use translation_cache::TranslationCache;
 pub use translation_controller::{
-    TranslationController, TranslationMode, TranslationOperation, TranslationState,
+    DEFAULT_TRANSLATION_CACHE_CAPACITY, TranslationController, TranslationMode,
+    TranslationOperation, TranslationState,
 };
 pub use translation_debounce::{
     DebounceTicket, DebounceUpdate, LIVE_TRANSLATION_DEBOUNCE, LiveTranslationDebouncer,
@@ -77,7 +80,7 @@ impl TranslationRequest {
 }
 
 /// The source language for a request, including explicit auto-detection.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum SourceLanguage {
     AutoDetect,
     Specific(LanguageCode),

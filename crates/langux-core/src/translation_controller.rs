@@ -3,7 +3,13 @@ use std::sync::{
     atomic::{AtomicBool, Ordering},
 };
 
-use crate::{LanguagePair, TranslationError, TranslationRequest, TranslationResult};
+use crate::{
+    LanguagePair, TranslationCache, TranslationError, TranslationRequest, TranslationResult,
+};
+
+/// The default number of successful translations retained in memory.
+/// Zero keeps the optional cache disabled until a caller configures a capacity.
+pub const DEFAULT_TRANSLATION_CACHE_CAPACITY: usize = 0;
 
 /// Determines when the UI should ask the controller to translate current text.
 ///
@@ -74,17 +80,29 @@ pub struct TranslationController {
     mode: TranslationMode,
     state: TranslationState,
     active_operation: Option<Arc<AtomicBool>>,
+    translation_cache: TranslationCache,
 }
 
 impl TranslationController {
     /// Creates an idle controller with the selected language pair and mode.
     pub fn new(language_pair: LanguagePair, mode: TranslationMode) -> Self {
+        Self::with_cache_capacity(language_pair, mode, DEFAULT_TRANSLATION_CACHE_CAPACITY)
+    }
+
+    /// Creates an idle controller with an explicit session-cache capacity.
+    /// A capacity of zero disables caching.
+    pub fn with_cache_capacity(
+        language_pair: LanguagePair,
+        mode: TranslationMode,
+        cache_capacity: usize,
+    ) -> Self {
         Self {
             input_text: String::new(),
             language_pair,
             mode,
             state: TranslationState::Idle,
             active_operation: None,
+            translation_cache: TranslationCache::new(cache_capacity),
         }
     }
 
@@ -106,6 +124,27 @@ impl TranslationController {
     /// Returns the current translation lifecycle state.
     pub fn state(&self) -> &TranslationState {
         &self.state
+    }
+
+    /// Returns the configured maximum number of cached translations.
+    pub fn translation_cache_capacity(&self) -> usize {
+        self.translation_cache.capacity()
+    }
+
+    /// Returns the number of successful translations currently cached.
+    pub fn cached_translation_count(&self) -> usize {
+        self.translation_cache.len()
+    }
+
+    /// Changes the cache capacity, immediately evicting old entries if needed.
+    /// A capacity of zero clears and disables caching.
+    pub fn resize_translation_cache(&mut self, capacity: usize) {
+        self.translation_cache.resize(capacity);
+    }
+
+    /// Clears the session-only translation cache.
+    pub fn clear_translation_cache(&mut self) {
+        self.translation_cache.clear();
     }
 
     /// Replaces the input text and clears a stale result when it changes.
@@ -139,7 +178,8 @@ impl TranslationController {
     /// The original input, including surrounding whitespace, is otherwise
     /// sent unchanged. The caller can execute the request and apply its result
     /// with [`Self::finish_translation`]. Starting a new operation cancels
-    /// any operation that is still active.
+    /// any operation that is still active. A cache hit changes the state to
+    /// success and returns `None`, so no provider work is started.
     pub fn begin_translation(&mut self) -> Option<TranslationOperation> {
         self.cancel_active_operation();
 
@@ -148,12 +188,17 @@ impl TranslationController {
             return None;
         }
 
-        let cancellation = Arc::new(AtomicBool::new(false));
         let request = TranslationRequest::new(
             self.input_text.clone(),
             self.language_pair.source_language().clone(),
             self.language_pair.target_language().clone(),
         );
+        if let Some(result) = self.translation_cache.get(&request) {
+            self.state = TranslationState::Success(result);
+            return None;
+        }
+
+        let cancellation = Arc::new(AtomicBool::new(false));
         self.active_operation = Some(Arc::clone(&cancellation));
         self.state = TranslationState::Translating;
         Some(TranslationOperation {
@@ -196,7 +241,11 @@ impl TranslationController {
         self.active_operation = None;
 
         self.state = match outcome {
-            Ok(result) => TranslationState::Success(result),
+            Ok(result) => {
+                self.translation_cache
+                    .insert(&operation.request, result.clone());
+                TranslationState::Success(result)
+            }
             Err(TranslationError::Cancelled) => {
                 operation.cancel();
                 TranslationState::Cancelled
@@ -208,8 +257,9 @@ impl TranslationController {
 
     /// Runs the current request through an injected synchronous executor.
     ///
-    /// Blank input does not call the executor. Asynchronous callers can use
-    /// [`Self::begin_translation`] and [`Self::finish_translation`] instead.
+    /// Blank input and cache hits do not call the executor. Asynchronous
+    /// callers can use [`Self::begin_translation`] and
+    /// [`Self::finish_translation`] instead.
     pub fn translate_with<E>(&mut self, mut execute: E) -> &TranslationState
     where
         E: FnMut(TranslationRequest) -> Result<TranslationResult, TranslationError>,
@@ -241,7 +291,10 @@ mod tests {
 
     use crate::{LanguageCode, LanguagePair, SourceLanguage, TranslationError, TranslationResult};
 
-    use super::{TranslationController, TranslationMode, TranslationState};
+    use super::{
+        DEFAULT_TRANSLATION_CACHE_CAPACITY, TranslationController, TranslationMode,
+        TranslationState,
+    };
 
     fn code(value: &str) -> LanguageCode {
         LanguageCode::new(value).expect("valid language code")
@@ -260,6 +313,121 @@ mod tests {
         assert_eq!(controller.language_pair(), &pair("pt", "en"));
         assert_eq!(controller.mode(), TranslationMode::Manual);
         assert_eq!(controller.state(), &TranslationState::Idle);
+        assert_eq!(
+            controller.translation_cache_capacity(),
+            DEFAULT_TRANSLATION_CACHE_CAPACITY
+        );
+    }
+
+    #[test]
+    fn cache_hit_skips_executor_and_restores_cached_success() {
+        let calls = Rc::new(Cell::new(0));
+        let mut controller =
+            TranslationController::with_cache_capacity(pair("pt", "en"), TranslationMode::Live, 2);
+        controller.set_input_text("olá");
+
+        let calls_for_executor = Rc::clone(&calls);
+        assert_eq!(
+            controller.translate_with(move |_| {
+                calls_for_executor.set(calls_for_executor.get() + 1);
+                Ok(TranslationResult::new("hello", Some(code("pt"))))
+            }),
+            &TranslationState::Success(TranslationResult::new("hello", Some(code("pt"))))
+        );
+        assert_eq!(calls.get(), 1);
+
+        let calls_for_executor = Rc::clone(&calls);
+        assert_eq!(
+            controller.translate_with(move |_| {
+                calls_for_executor.set(calls_for_executor.get() + 1);
+                Ok(TranslationResult::new("unexpected", None))
+            }),
+            &TranslationState::Success(TranslationResult::new("hello", Some(code("pt"))))
+        );
+
+        assert_eq!(calls.get(), 1);
+        assert_eq!(controller.cached_translation_count(), 1);
+    }
+
+    #[test]
+    fn zero_capacity_disables_controller_caching() {
+        let calls = Rc::new(Cell::new(0));
+        let mut controller = TranslationController::with_cache_capacity(
+            pair("pt", "en"),
+            TranslationMode::Manual,
+            0,
+        );
+        controller.set_input_text("olá");
+
+        for _ in 0..2 {
+            let calls_for_executor = Rc::clone(&calls);
+            controller.translate_with(move |_| {
+                calls_for_executor.set(calls_for_executor.get() + 1);
+                Ok(TranslationResult::new("hello", None))
+            });
+        }
+
+        assert_eq!(calls.get(), 2);
+        assert_eq!(controller.translation_cache_capacity(), 0);
+        assert_eq!(controller.cached_translation_count(), 0);
+    }
+
+    #[test]
+    fn controller_can_resize_and_clear_its_cache() {
+        let calls = Rc::new(Cell::new(0));
+        let mut controller = TranslationController::with_cache_capacity(
+            pair("pt", "en"),
+            TranslationMode::Manual,
+            3,
+        );
+
+        for input in ["one", "two", "three"] {
+            controller.set_input_text(input);
+            let calls_for_executor = Rc::clone(&calls);
+            controller.translate_with(move |_| {
+                calls_for_executor.set(calls_for_executor.get() + 1);
+                Ok(TranslationResult::new("translated", None))
+            });
+        }
+        assert_eq!(controller.cached_translation_count(), 3);
+
+        controller.resize_translation_cache(1);
+        assert_eq!(controller.translation_cache_capacity(), 1);
+        assert_eq!(controller.cached_translation_count(), 1);
+
+        controller.set_input_text("one");
+        let calls_for_executor = Rc::clone(&calls);
+        controller.translate_with(move |_| {
+            calls_for_executor.set(calls_for_executor.get() + 1);
+            Ok(TranslationResult::new("translated again", None))
+        });
+        assert_eq!(calls.get(), 4);
+        assert_eq!(controller.cached_translation_count(), 1);
+
+        controller.clear_translation_cache();
+        assert_eq!(controller.cached_translation_count(), 0);
+    }
+
+    #[test]
+    fn asynchronous_begin_returns_no_operation_for_a_cache_hit() {
+        let mut controller = TranslationController::with_cache_capacity(
+            pair("pt", "en"),
+            TranslationMode::Manual,
+            2,
+        );
+        controller.set_input_text("olá");
+        let operation = controller.begin_translation().expect("initial cache miss");
+        assert!(
+            controller.finish_translation(&operation, Ok(TranslationResult::new("hello", None)))
+        );
+
+        controller.set_input_text("bom dia");
+        controller.set_input_text("olá");
+        assert!(controller.begin_translation().is_none());
+        assert_eq!(
+            controller.state(),
+            &TranslationState::Success(TranslationResult::new("hello", None))
+        );
     }
 
     #[test]
