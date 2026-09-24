@@ -2,6 +2,12 @@
 
 Thanks for contributing to Langux. Keep it simple and keep it in MVP scope.
 
+## Langux 1.0 rewrite policy
+
+For work under epic [#9](https://github.com/rafaself/langux/issues/9), follow
+the [rewrite policy](REWRITE.md). The standalone application is a greenfield
+rewrite; the GNOME Shell extension is a behavioral reference only.
+
 ## MVP-scope rule
 
 Langux is a focused v0.1: open → translate → copy. Features outside that flow

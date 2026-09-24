@@ -1,19 +1,13 @@
-# Langux v0.1.0 — first MVP release
+# Langux v0.1.1 — final GNOME Shell extension release
 
-Langux is a local-first quick translator for GNOME Shell: press the shortcut, type
-or paste text, translate with Google Cloud Translation Basic v2, copy the result.
+This release freezes the last GNOME Shell extension implementation before the
+greenfield Langux 1.0 rewrite. Its complete source is preserved in Git at the
+`v0.1.1` tag; the earlier `v0.1.0` release remains available.
 
-- Supported/tested GNOME Shell version: **49**.
-- Bring your own key: this release requires a **Google Cloud Translation Basic v2
-  API key** (paid Google Cloud project, API enabled, key restricted to the
-  Translation API as recommended).
-- Local-first privacy model: no backend, no accounts, no telemetry, and no persistent
-  translation history. Live translation is enabled by default after a one-second
-  debounce, with a manual Enter/Ctrl+Enter mode available. Optional caching is off by
-  default; when enabled, successful results are kept only in a bounded in-memory
-  cache. The API key lives in GNOME Keyring.
-- The manifest file `dist/langux.zip.sha256` is published next to the archive so
-  installs can verify the download before installing.
+The rewrite policy is documented in [`REWRITE.md`](REWRITE.md) and follows
+[epic #9](https://github.com/rafaself/langux/issues/9). Future work under that
+epic targets the standalone application and does not carry forward GJS or GNOME
+Shell implementation details.
 
 ## Install
 
@@ -29,7 +23,7 @@ gnome-extensions enable langux@rafaself.github.io
 
 Then configure your Google Cloud API key in the Langux settings window.
 
-## Known limitations (v0.1.0)
+## Known limitations
 
 - No clipboard-triggered translation
 - No translation history

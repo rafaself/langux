@@ -6,6 +6,6 @@
   "shell-version": [
     "49"
   ],
-  "version-name": "0.1.0",
+  "version-name": "0.1.1",
   "settings-schema": "org.gnome.shell.extensions.langux"
 }
