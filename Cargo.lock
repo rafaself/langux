@@ -1290,6 +1290,7 @@ dependencies = [
  "dbus-secret-service",
  "keyring",
  "langux-core",
+ "rustix",
 ]
 
 [[package]]

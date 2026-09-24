@@ -12,3 +12,4 @@ langux-core = { path = "../langux-core" }
 [target.'cfg(target_os = "linux")'.dependencies]
 dbus-secret-service = { version = "=4.0.1", default-features = false, features = ["crypto-rust"] }
 keyring = { version = "=3.6.3", default-features = false, features = ["sync-secret-service", "crypto-rust"] }
+rustix = { version = "=1.1.5", features = ["fs"] }

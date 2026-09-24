@@ -4,6 +4,12 @@ use langux_core::{
     GOOGLE_TRANSLATION_ACCOUNT_ID, LANGUX_SECRET_SERVICE_ID, SecretCredential, SecretStore,
     SecretStoreError,
 };
+use rustix::fs::{FlockOperation, Mode, OFlags, flock, open};
+use std::{
+    env, fs,
+    os::unix::fs::MetadataExt,
+    path::{Path, PathBuf},
+};
 
 use crate::{SecretServiceBackend, SecretStoreAdapter};
 
@@ -14,10 +20,10 @@ pub const GOOGLE_TRANSLATION_SECRET_LABEL: &str = "Langux Google Cloud Translati
 
 /// Stores Langux credentials using the current user's Linux Secret Service.
 ///
-/// Calls are synchronous and serialized within this process. Because Secret
-/// Service calls can wait on inter-process communication or an unlock prompt,
-/// callers should not invoke these methods on the GTK main thread. There is no
-/// file or configuration fallback.
+/// Calls are serialized across processes while mutating credentials. Because
+/// Secret Service calls can wait on inter-process communication or an unlock
+/// prompt, callers should not invoke these methods on the GTK main thread.
+/// There is no file or configuration fallback.
 pub struct SecretServiceStore(SecretStoreAdapter<KeyringBackend>);
 
 impl SecretServiceStore {
@@ -73,17 +79,84 @@ impl SecretServiceBackend for KeyringBackend {
         }
     }
 
-    fn set(&self, credential: &str) -> Result<(), SecretStoreError> {
+    fn save(&self, credential: &str) -> Result<(), SecretStoreError> {
+        let _lock = MutationLock::acquire()?;
+        match self.entry.get_attributes() {
+            Ok(_) => return Err(SecretStoreError::AlreadyConfigured),
+            Err(KeyringError::NoEntry) => {}
+            Err(error) => return Err(map_keyring_error(error)),
+        }
+        self.entry
+            .set_password(credential)
+            .map_err(map_keyring_error)
+    }
+
+    fn replace(&self, credential: &str) -> Result<(), SecretStoreError> {
+        let _lock = MutationLock::acquire()?;
+        match self.entry.get_attributes() {
+            Ok(_) => {}
+            Err(KeyringError::NoEntry) => return Err(SecretStoreError::NotConfigured),
+            Err(error) => return Err(map_keyring_error(error)),
+        }
         self.entry
             .set_password(credential)
             .map_err(map_keyring_error)
     }
 
     fn remove(&self) -> Result<(), SecretStoreError> {
+        let _lock = MutationLock::acquire()?;
         match self.entry.delete_credential() {
             Ok(()) => Ok(()),
             Err(KeyringError::NoEntry) => Err(SecretStoreError::NotConfigured),
             Err(error) => Err(map_keyring_error(error)),
+        }
+    }
+}
+
+/// A per-login-session lock shared by Langux processes; it holds no secret data.
+struct MutationLock {
+    _file: fs::File,
+}
+
+impl MutationLock {
+    fn acquire() -> Result<Self, SecretStoreError> {
+        let runtime_dir = env::var_os("XDG_RUNTIME_DIR").ok_or(SecretStoreError::Failed)?;
+        let runtime_dir = PathBuf::from(runtime_dir);
+        if !runtime_dir.is_absolute() {
+            return Err(SecretStoreError::Failed);
+        }
+
+        Self::acquire_at(&runtime_dir.join("langux-secret-service.lock"))
+    }
+
+    fn acquire_at(path: &Path) -> Result<Self, SecretStoreError> {
+        let parent = path.parent().ok_or(SecretStoreError::Failed)?;
+        let directory_metadata = fs::metadata(parent).map_err(|_| SecretStoreError::Failed)?;
+        if !directory_metadata.is_dir() || directory_metadata.mode() & 0o077 != 0 {
+            return Err(SecretStoreError::Failed);
+        }
+
+        let fd = open(
+            path,
+            OFlags::RDWR | OFlags::CREATE | OFlags::NOFOLLOW | OFlags::CLOEXEC,
+            Mode::RUSR | Mode::WUSR,
+        )
+        .map_err(|_| SecretStoreError::Failed)?;
+        let file = fs::File::from(fd);
+        let metadata = file.metadata().map_err(|_| SecretStoreError::Failed)?;
+        if !metadata.is_file()
+            || metadata.mode() & 0o077 != 0
+            || metadata.uid() != directory_metadata.uid()
+        {
+            return Err(SecretStoreError::Failed);
+        }
+
+        loop {
+            match flock(&file, FlockOperation::LockExclusive) {
+                Ok(()) => return Ok(Self { _file: file }),
+                Err(error) if error.kind() == std::io::ErrorKind::Interrupted => continue,
+                Err(_) => return Err(SecretStoreError::Failed),
+            }
         }
     }
 }
@@ -130,9 +203,19 @@ mod tests {
     use dbus_secret_service::Error as SecretServiceError;
     use keyring::Error as KeyringError;
     use langux_core::{GOOGLE_TRANSLATION_ACCOUNT_ID, LANGUX_SECRET_SERVICE_ID, SecretStoreError};
+    use std::{
+        fs,
+        os::unix::fs::PermissionsExt,
+        path::PathBuf,
+        sync::atomic::{AtomicU64, Ordering},
+        sync::mpsc,
+        thread,
+        time::Duration,
+    };
 
     use super::{
-        GOOGLE_TRANSLATION_SECRET_LABEL, SECRET_SERVICE_COLLECTION, create_entry, map_keyring_error,
+        GOOGLE_TRANSLATION_SECRET_LABEL, MutationLock, SECRET_SERVICE_COLLECTION, create_entry,
+        map_keyring_error,
     };
 
     #[test]
@@ -209,5 +292,44 @@ mod tests {
                 .to_string()
                 .contains("do-not-leak-this-key")
         );
+    }
+
+    #[test]
+    fn mutation_lock_serializes_independent_handles() {
+        static NEXT_TEST_DIR: AtomicU64 = AtomicU64::new(0);
+
+        let dir = std::env::temp_dir().join(format!(
+            "langux-secret-service-test-{}-{}",
+            std::process::id(),
+            NEXT_TEST_DIR.fetch_add(1, Ordering::Relaxed)
+        ));
+        fs::create_dir(&dir).expect("create private lock directory");
+        fs::set_permissions(&dir, fs::Permissions::from_mode(0o700))
+            .expect("secure lock directory");
+        let path = PathBuf::from(&dir).join("lock");
+        let first = MutationLock::acquire_at(&path).expect("acquire first lock");
+        let (started_tx, started_rx) = mpsc::channel();
+        let (acquired_tx, acquired_rx) = mpsc::channel();
+        let second_path = path.clone();
+        let second = thread::spawn(move || {
+            started_tx.send(()).expect("notify lock attempt");
+            let _lock = MutationLock::acquire_at(&second_path).expect("acquire second lock");
+            acquired_tx.send(()).expect("notify lock acquired");
+        });
+
+        started_rx
+            .recv_timeout(Duration::from_secs(1))
+            .expect("second lock attempt started");
+        assert!(
+            acquired_rx
+                .recv_timeout(Duration::from_millis(100))
+                .is_err()
+        );
+        drop(first);
+        acquired_rx
+            .recv_timeout(Duration::from_secs(1))
+            .expect("second lock acquired after release");
+        second.join().expect("join lock worker");
+        fs::remove_dir_all(dir).expect("remove test lock directory");
     }
 }

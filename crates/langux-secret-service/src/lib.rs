@@ -20,7 +20,17 @@ pub use unsupported::SecretServiceStore;
 trait SecretServiceBackend: Send + Sync {
     fn retrieve(&self) -> Result<Option<String>, SecretStoreError>;
     fn exists(&self) -> Result<bool, SecretStoreError>;
-    fn set(&self, credential: &str) -> Result<(), SecretStoreError>;
+    /// Stores a credential only when one is absent.
+    ///
+    /// Implementations must make the precondition atomic with the write and
+    /// serialize it with replacement and removal operations.
+    fn save(&self, credential: &str) -> Result<(), SecretStoreError>;
+    /// Replaces a credential only when one is present.
+    ///
+    /// Implementations must make the precondition atomic with the write and
+    /// serialize it with save and removal operations.
+    fn replace(&self, credential: &str) -> Result<(), SecretStoreError>;
+    /// Removes a credential, serialized with save and replace operations.
     fn remove(&self) -> Result<(), SecretStoreError>;
 }
 
@@ -51,10 +61,7 @@ where
 {
     fn save(&self, credential: &SecretCredential) -> Result<(), SecretStoreError> {
         let _guard = self.lock_operation()?;
-        if self.backend.exists()? {
-            return Err(SecretStoreError::AlreadyConfigured);
-        }
-        self.backend.set(credential.expose_secret())
+        self.backend.save(credential.expose_secret())
     }
 
     fn retrieve(&self) -> Result<Option<SecretCredential>, SecretStoreError> {
@@ -71,10 +78,7 @@ where
 
     fn replace(&self, credential: &SecretCredential) -> Result<(), SecretStoreError> {
         let _guard = self.lock_operation()?;
-        if !self.backend.exists()? {
-            return Err(SecretStoreError::NotConfigured);
-        }
-        self.backend.set(credential.expose_secret())
+        self.backend.replace(credential.expose_secret())
     }
 
     fn remove(&self) -> Result<(), SecretStoreError> {
@@ -101,7 +105,11 @@ mod unsupported_impl {
             Err(SecretStoreError::Unavailable)
         }
 
-        fn set(&self, _: &str) -> Result<(), SecretStoreError> {
+        fn save(&self, _: &str) -> Result<(), SecretStoreError> {
+            Err(SecretStoreError::Unavailable)
+        }
+
+        fn replace(&self, _: &str) -> Result<(), SecretStoreError> {
             Err(SecretStoreError::Unavailable)
         }
 
@@ -170,8 +178,21 @@ mod tests {
             Ok(self.0.lock().expect("memory backend lock").is_some())
         }
 
-        fn set(&self, credential: &str) -> Result<(), SecretStoreError> {
-            *self.0.lock().expect("memory backend lock") = Some(credential.to_owned());
+        fn save(&self, credential: &str) -> Result<(), SecretStoreError> {
+            let mut stored = self.0.lock().expect("memory backend lock");
+            if stored.is_some() {
+                return Err(SecretStoreError::AlreadyConfigured);
+            }
+            *stored = Some(credential.to_owned());
+            Ok(())
+        }
+
+        fn replace(&self, credential: &str) -> Result<(), SecretStoreError> {
+            let mut stored = self.0.lock().expect("memory backend lock");
+            if stored.is_none() {
+                return Err(SecretStoreError::NotConfigured);
+            }
+            *stored = Some(credential.to_owned());
             Ok(())
         }
 
