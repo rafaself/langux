@@ -2,6 +2,7 @@
 
 mod google_translation;
 mod languages;
+mod secret_store;
 mod translation_cache;
 mod translation_controller;
 mod translation_debounce;
@@ -11,6 +12,10 @@ pub use google_translation::GoogleTranslationProvider;
 pub use languages::{
     Language, LanguagePair, LanguagePairError, LanguageSwapError, find_supported_language,
     supported_languages,
+};
+pub use secret_store::{
+    GOOGLE_TRANSLATION_ACCOUNT_ID, LANGUX_SECRET_SERVICE_ID, SecretCredential, SecretStore,
+    SecretStoreError,
 };
 pub use translation_cache::TranslationCache;
 pub use translation_controller::{
