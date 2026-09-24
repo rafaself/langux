@@ -1,11 +1,13 @@
 //! Platform-independent types shared by Langux translation behavior.
 
+mod google_translation;
 mod languages;
 mod translation_cache;
 mod translation_controller;
 mod translation_debounce;
 mod translation_provider;
 
+pub use google_translation::GoogleTranslationProvider;
 pub use languages::{
     Language, LanguagePair, LanguagePairError, LanguageSwapError, find_supported_language,
     supported_languages,
