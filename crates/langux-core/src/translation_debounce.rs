@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use crate::{
-    LanguagePair, SourceLanguage, TranslationController, TranslationMode, TranslationRequest,
+    LanguagePair, SourceLanguage, TranslationController, TranslationMode, TranslationOperation,
 };
 
 /// The product delay for live translation after the last input change.
@@ -124,7 +124,7 @@ impl LiveTranslationDebouncer {
         &mut self,
         ticket: DebounceTicket,
         controller: &mut TranslationController,
-    ) -> Option<TranslationRequest> {
+    ) -> Option<TranslationOperation> {
         let pending = self.pending.as_ref()?;
         if pending.ticket != ticket {
             return None;
@@ -224,14 +224,16 @@ mod tests {
         let (cancelled, latest_ticket, _) = scheduled(debouncer.update(&controller));
 
         assert_eq!(cancelled, Some(first_ticket));
-        assert_eq!(
-            debouncer.begin_if_pending(first_ticket, &mut controller),
-            None
+        assert!(
+            debouncer
+                .begin_if_pending(first_ticket, &mut controller)
+                .is_none()
         );
         assert_eq!(
             debouncer
                 .begin_if_pending(latest_ticket, &mut controller)
                 .expect("latest timer starts translation")
+                .request()
                 .text,
             "latest"
         );
@@ -245,7 +247,11 @@ mod tests {
 
         assert_eq!(debouncer.cancel(), DebounceUpdate::Cancel { ticket });
         assert_eq!(debouncer.cancel(), DebounceUpdate::Unchanged);
-        assert_eq!(debouncer.begin_if_pending(ticket, &mut controller), None);
+        assert!(
+            debouncer
+                .begin_if_pending(ticket, &mut controller)
+                .is_none()
+        );
     }
 
     #[test]
@@ -295,9 +301,14 @@ mod tests {
             debouncer
                 .begin_if_pending(ticket, &mut controller)
                 .expect("auto detection can be translated")
+                .request()
                 .text,
             "hello"
         );
-        assert_eq!(debouncer.begin_if_pending(ticket, &mut controller), None);
+        assert!(
+            debouncer
+                .begin_if_pending(ticket, &mut controller)
+                .is_none()
+        );
     }
 }

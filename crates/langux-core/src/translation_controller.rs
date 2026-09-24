@@ -1,3 +1,8 @@
+use std::sync::{
+    Arc,
+    atomic::{AtomicBool, Ordering},
+};
+
 use crate::{LanguagePair, TranslationError, TranslationRequest, TranslationResult};
 
 /// Determines when the UI should ask the controller to translate current text.
@@ -19,22 +24,56 @@ pub enum TranslationState {
     Idle,
     /// The executor is processing the current input.
     Translating,
+    /// The current translation was cancelled.
+    ///
+    /// Cancellation is a lifecycle outcome, not a provider failure to show
+    /// as an error to the user.
+    Cancelled,
     /// The current input was translated successfully.
     Success(TranslationResult),
     /// The current input could not be translated.
     Error(TranslationError),
 }
 
+/// One translation request and its cancellation signal.
+///
+/// Clones share the same signal, so a worker can retain an operation while
+/// the controller cancels it. Callers should check [`Self::is_cancelled`]
+/// before applying any work and return its completion to the controller with
+/// [`TranslationController::finish_translation`].
+#[derive(Clone, Debug)]
+pub struct TranslationOperation {
+    request: TranslationRequest,
+    cancellation: Arc<AtomicBool>,
+}
+
+impl TranslationOperation {
+    /// Returns the request associated with this operation.
+    pub fn request(&self) -> &TranslationRequest {
+        &self.request
+    }
+
+    /// Returns whether the controller has cancelled this operation.
+    pub fn is_cancelled(&self) -> bool {
+        self.cancellation.load(Ordering::Acquire)
+    }
+
+    fn cancel(&self) {
+        self.cancellation.store(true, Ordering::Release);
+    }
+}
+
 /// Coordinates current text, language context, mode, and translation state.
 ///
 /// The controller contains no provider or UI dependency. Callers may execute
-/// returned requests asynchronously, or use [`Self::translate_with`] to
+/// returned operations asynchronously, or use [`Self::translate_with`] to
 /// inject a synchronous executor.
 pub struct TranslationController {
     input_text: String,
     language_pair: LanguagePair,
     mode: TranslationMode,
     state: TranslationState,
+    active_operation: Option<Arc<AtomicBool>>,
 }
 
 impl TranslationController {
@@ -45,6 +84,7 @@ impl TranslationController {
             language_pair,
             mode,
             state: TranslationState::Idle,
+            active_operation: None,
         }
     }
 
@@ -72,6 +112,7 @@ impl TranslationController {
     pub fn set_input_text(&mut self, input_text: impl Into<String>) {
         let input_text = input_text.into();
         if self.input_text != input_text {
+            self.cancel_active_operation();
             self.input_text = input_text;
             self.state = TranslationState::Idle;
         }
@@ -80,6 +121,7 @@ impl TranslationController {
     /// Replaces the language context and clears a stale result when it changes.
     pub fn set_language_pair(&mut self, language_pair: LanguagePair) {
         if self.language_pair != language_pair {
+            self.cancel_active_operation();
             self.language_pair = language_pair;
             self.state = TranslationState::Idle;
         }
@@ -91,41 +133,74 @@ impl TranslationController {
         self.mode = mode;
     }
 
-    /// Starts translation for the current input and returns its request.
+    /// Starts translation for the current input and returns its operation.
     ///
     /// Whitespace-only input returns `None` and leaves the controller idle.
     /// The original input, including surrounding whitespace, is otherwise
     /// sent unchanged. The caller can execute the request and apply its result
-    /// with [`Self::finish_translation`].
-    pub fn begin_translation(&mut self) -> Option<TranslationRequest> {
+    /// with [`Self::finish_translation`]. Starting a new operation cancels
+    /// any operation that is still active.
+    pub fn begin_translation(&mut self) -> Option<TranslationOperation> {
+        self.cancel_active_operation();
+
         if self.input_text.trim().is_empty() {
             self.state = TranslationState::Idle;
             return None;
         }
 
+        let cancellation = Arc::new(AtomicBool::new(false));
         let request = TranslationRequest::new(
             self.input_text.clone(),
             self.language_pair.source_language().clone(),
             self.language_pair.target_language().clone(),
         );
+        self.active_operation = Some(Arc::clone(&cancellation));
         self.state = TranslationState::Translating;
-        Some(request)
+        Some(TranslationOperation {
+            request,
+            cancellation,
+        })
     }
 
-    /// Applies a completed translation if the controller is still translating.
+    /// Cancels the active operation, if present.
     ///
-    /// Returns `false` when no translation is in progress, such as after the
-    /// input or language context changed while a request was running.
+    /// The operation's cancellation signal is set before the controller moves
+    /// to [`TranslationState::Cancelled`]. Returns `false` when there is no
+    /// active operation to cancel.
+    pub fn cancel_translation(&mut self) -> bool {
+        let Some(cancellation) = self.active_operation.take() else {
+            return false;
+        };
+
+        cancellation.store(true, Ordering::Release);
+        self.state = TranslationState::Cancelled;
+        true
+    }
+
+    /// Applies a completed translation only if its operation is still active.
+    ///
+    /// Returns `false` when the operation was cancelled, superseded, or its
+    /// input or language context changed while it was running.
     pub fn finish_translation(
         &mut self,
+        operation: &TranslationOperation,
         outcome: Result<TranslationResult, TranslationError>,
     ) -> bool {
-        if self.state != TranslationState::Translating {
+        let Some(active_cancellation) = self.active_operation.as_ref() else {
+            return false;
+        };
+        if !Arc::ptr_eq(active_cancellation, &operation.cancellation) || operation.is_cancelled() {
             return false;
         }
 
+        self.active_operation = None;
+
         self.state = match outcome {
             Ok(result) => TranslationState::Success(result),
+            Err(TranslationError::Cancelled) => {
+                operation.cancel();
+                TranslationState::Cancelled
+            }
             Err(error) => TranslationState::Error(error),
         };
         true
@@ -139,11 +214,23 @@ impl TranslationController {
     where
         E: FnMut(TranslationRequest) -> Result<TranslationResult, TranslationError>,
     {
-        if let Some(request) = self.begin_translation() {
-            let outcome = execute(request);
-            self.finish_translation(outcome);
+        if let Some(operation) = self.begin_translation() {
+            let outcome = execute(operation.request.clone());
+            self.finish_translation(&operation, outcome);
         }
         &self.state
+    }
+
+    fn cancel_active_operation(&mut self) {
+        if let Some(cancellation) = self.active_operation.take() {
+            cancellation.store(true, Ordering::Release);
+        }
+    }
+}
+
+impl Drop for TranslationController {
+    fn drop(&mut self) {
+        self.cancel_active_operation();
     }
 }
 
@@ -182,7 +269,7 @@ mod tests {
         let mut controller = TranslationController::new(pair("pt", "en"), TranslationMode::Live);
         controller.set_input_text(" \n\t ");
 
-        assert_eq!(controller.begin_translation(), None);
+        assert!(controller.begin_translation().is_none());
         assert_eq!(controller.state(), &TranslationState::Idle);
         assert_eq!(
             controller.translate_with(move |_| {
@@ -199,14 +286,14 @@ mod tests {
         let mut controller = TranslationController::new(pair("pt", "en"), TranslationMode::Manual);
         controller.set_input_text("  olá  ");
 
-        let request = controller.begin_translation().expect("nonblank input");
+        let operation = controller.begin_translation().expect("nonblank input");
 
-        assert_eq!(request.text, "  olá  ");
+        assert_eq!(operation.request().text, "  olá  ");
         assert_eq!(
-            request.source_language,
+            operation.request().source_language,
             SourceLanguage::Specific(code("pt"))
         );
-        assert_eq!(request.target_language, code("en"));
+        assert_eq!(operation.request().target_language, code("en"));
         assert_eq!(controller.state(), &TranslationState::Translating);
     }
 
@@ -239,16 +326,97 @@ mod tests {
     fn completion_is_ignored_after_input_or_context_change() {
         let mut controller = TranslationController::new(pair("pt", "en"), TranslationMode::Manual);
         controller.set_input_text("olá");
-        assert!(controller.begin_translation().is_some());
+        let input_operation = controller.begin_translation().expect("input request");
 
         controller.set_input_text("bom dia");
+        assert!(input_operation.is_cancelled());
         assert_eq!(controller.state(), &TranslationState::Idle);
-        assert!(!controller.finish_translation(Ok(TranslationResult::new("hello", None))));
+        assert!(
+            !controller
+                .finish_translation(&input_operation, Ok(TranslationResult::new("hello", None)))
+        );
 
-        assert!(controller.begin_translation().is_some());
+        let language_operation = controller.begin_translation().expect("language request");
         controller.set_language_pair(pair("pt", "es"));
+        assert!(language_operation.is_cancelled());
         assert_eq!(controller.state(), &TranslationState::Idle);
-        assert!(!controller.finish_translation(Err(TranslationError::NetworkFailure)));
+        assert!(
+            !controller
+                .finish_translation(&language_operation, Err(TranslationError::NetworkFailure))
+        );
+    }
+
+    #[test]
+    fn starting_a_new_operation_cancels_the_old_and_rejects_its_late_result() {
+        let mut controller = TranslationController::new(pair("pt", "en"), TranslationMode::Live);
+        controller.set_input_text("first");
+        let first = controller.begin_translation().expect("first operation");
+
+        controller.set_input_text("latest");
+        let latest = controller.begin_translation().expect("latest operation");
+
+        assert!(first.is_cancelled());
+        assert!(!latest.is_cancelled());
+        assert!(
+            !controller
+                .finish_translation(&first, Ok(TranslationResult::new("stale result", None)))
+        );
+        assert!(
+            controller
+                .finish_translation(&latest, Ok(TranslationResult::new("current result", None)))
+        );
+        assert_eq!(
+            controller.state(),
+            &TranslationState::Success(TranslationResult::new("current result", None))
+        );
+    }
+
+    #[test]
+    fn out_of_order_completion_cannot_replace_a_newer_result() {
+        let mut controller = TranslationController::new(pair("pt", "en"), TranslationMode::Live);
+        controller.set_input_text("same input");
+        let older = controller.begin_translation().expect("older operation");
+        let newer = controller.begin_translation().expect("newer operation");
+
+        assert!(
+            controller.finish_translation(&newer, Ok(TranslationResult::new("newer result", None)))
+        );
+        assert!(
+            !controller
+                .finish_translation(&older, Ok(TranslationResult::new("older result", None)))
+        );
+        assert_eq!(
+            controller.state(),
+            &TranslationState::Success(TranslationResult::new("newer result", None))
+        );
+    }
+
+    #[test]
+    fn explicit_and_normalized_cancellation_do_not_become_provider_errors() {
+        let mut controller = TranslationController::new(pair("pt", "en"), TranslationMode::Manual);
+        controller.set_input_text("olá");
+        let operation = controller.begin_translation().expect("operation");
+
+        assert!(controller.cancel_translation());
+        assert!(operation.is_cancelled());
+        assert_eq!(controller.state(), &TranslationState::Cancelled);
+        assert!(!controller.cancel_translation());
+        assert!(!controller.finish_translation(&operation, Err(TranslationError::NetworkFailure)));
+
+        let next = controller.begin_translation().expect("next operation");
+        assert!(controller.finish_translation(&next, Err(TranslationError::Cancelled)));
+        assert_eq!(controller.state(), &TranslationState::Cancelled);
+    }
+
+    #[test]
+    fn dropping_controller_cancels_outstanding_operation() {
+        let mut controller = TranslationController::new(pair("pt", "en"), TranslationMode::Manual);
+        controller.set_input_text("olá");
+        let operation = controller.begin_translation().expect("operation");
+
+        drop(controller);
+
+        assert!(operation.is_cancelled());
     }
 
     #[test]
