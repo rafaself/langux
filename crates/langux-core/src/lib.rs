@@ -1,5 +1,12 @@
 //! Platform-independent types shared by Langux translation behavior.
 
+mod languages;
+
+pub use languages::{
+    Language, LanguagePair, LanguagePairError, LanguageSwapError, find_supported_language,
+    supported_languages,
+};
+
 /// A structurally valid language identifier.
 ///
 /// This validates the shape of a BCP 47-style language tag, not whether a
