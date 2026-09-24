@@ -1,5 +1,7 @@
+use gtk::Application;
 use gtk::prelude::*;
-use gtk::{Application, ApplicationWindow, Label};
+
+mod translator_window;
 
 const APPLICATION_ID: &str = "io.github.rafaself.Langux";
 
@@ -8,19 +10,6 @@ fn main() {
         .application_id(APPLICATION_ID)
         .build();
 
-    app.connect_activate(build_ui);
+    app.connect_activate(translator_window::build);
     app.run();
-}
-
-fn build_ui(app: &Application) {
-    let welcome = Label::new(Some("Welcome to Langux"));
-    let window = ApplicationWindow::builder()
-        .application(app)
-        .title("Langux")
-        .default_width(480)
-        .default_height(360)
-        .child(&welcome)
-        .build();
-
-    window.present();
 }
