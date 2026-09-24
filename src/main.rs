@@ -1,6 +1,7 @@
 use gtk::Application;
 use gtk::prelude::*;
 
+mod input_key_behavior;
 mod language_controls;
 mod language_selection;
 mod secret_translation_provider;

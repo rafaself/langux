@@ -9,6 +9,7 @@ use crate::language_controls::LanguageControls;
 use crate::secret_translation_provider::SecretTranslationProvider;
 use crate::translation_flow;
 use crate::translation_view::TranslationView;
+use langux_core::TranslationMode;
 
 pub fn build(app: &Application) {
     let window = ApplicationWindow::builder()
@@ -53,6 +54,16 @@ pub fn build(app: &Application) {
     input_section.append(&input_area);
     content.append(&input_section);
 
+    let keyboard_help = Label::new(Some(concat!(
+        "Live mode translates after a pause; Ctrl+Enter translates immediately. ",
+        "Manual mode uses Enter or Ctrl+Enter. Shift+Enter adds a line. ",
+        "Escape closes Langux; Alt+C copies the result."
+    )));
+    keyboard_help.set_xalign(0.0);
+    keyboard_help.set_wrap(true);
+    keyboard_help.add_css_class("dim-label");
+    content.append(&keyboard_help);
+
     let translation_view = TranslationView::build();
     content.append(&translation_view.section);
 
@@ -65,10 +76,13 @@ pub fn build(app: &Application) {
         language_controls
             .selected_pair()
             .expect("default language selections are valid"),
+        TranslationMode::Live,
         translation_view,
         Arc::new(SecretTranslationProvider),
     );
+    window.set_focus(Some(&input_view));
     window.present();
+    input_view.grab_focus();
 }
 
 fn text_area(editable: bool) -> (ScrolledWindow, TextView) {

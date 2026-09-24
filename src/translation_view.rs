@@ -42,8 +42,8 @@ impl TranslationView {
         result_label.set_hexpand(true);
         result_label.set_mnemonic_widget(Some(&result_view));
 
-        let copy_button = Button::with_label("Copy");
-        copy_button.set_tooltip_text(Some("Copy the translated text to the clipboard."));
+        let copy_button = Button::with_mnemonic("_Copy");
+        copy_button.set_tooltip_text(Some("Copy the translated text to the clipboard (Alt+C)."));
         let result_buffer_for_copy = result_buffer.clone();
         copy_button.connect_clicked(move |button| {
             let (start, end) = result_buffer_for_copy.bounds();

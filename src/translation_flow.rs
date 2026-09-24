@@ -1,5 +1,5 @@
 use gtk::prelude::*;
-use gtk::{ApplicationWindow, DropDown, TextView, glib};
+use gtk::{ApplicationWindow, DropDown, EventControllerKey, PropagationPhase, TextView, gdk, glib};
 use langux_core::{
     LanguagePair, LiveTranslationDebouncer, SourceLanguage, TranslationController,
     TranslationError, TranslationMode, TranslationOperation, TranslationProvider,
@@ -8,6 +8,7 @@ use std::cell::RefCell;
 use std::rc::{Rc, Weak};
 use std::sync::Arc;
 
+use crate::input_key_behavior::{self, InputKey, KeyAction};
 use crate::language_selection::language_pair;
 use crate::translation_view::TranslationView;
 
@@ -26,17 +27,21 @@ pub fn connect(
     source_dropdown: &DropDown,
     target_dropdown: &DropDown,
     initial_pair: LanguagePair,
+    initial_mode: TranslationMode,
     view: TranslationView,
     provider: Arc<dyn TranslationProvider>,
 ) {
     let state = Rc::new(RefCell::new(TranslationUiState {
-        controller: TranslationController::new(initial_pair, TranslationMode::Live),
+        controller: TranslationController::new(initial_pair, initial_mode),
         debouncer: LiveTranslationDebouncer::default(),
         pending_timer: None,
         provider,
         view,
         closed: false,
     }));
+
+    connect_escape_key(window);
+    connect_translation_keys(input_view, &state);
 
     let input_buffer = input_view.buffer();
     let state_for_input = Rc::downgrade(&state);
@@ -90,6 +95,88 @@ pub fn connect(
     });
 
     render(&state);
+}
+
+fn connect_escape_key(window: &ApplicationWindow) {
+    let key_controller = EventControllerKey::new();
+    key_controller.set_propagation_phase(PropagationPhase::Capture);
+    let window_weak = window.downgrade();
+    key_controller.connect_key_pressed(move |_, key, _, modifiers| {
+        let action = input_key_behavior::action(
+            false,
+            input_key(key),
+            modifiers.contains(gdk::ModifierType::CONTROL_MASK),
+            modifiers.contains(gdk::ModifierType::SHIFT_MASK),
+            has_other_modifier(modifiers),
+        );
+        if action == KeyAction::Close
+            && let Some(window) = window_weak.upgrade()
+        {
+            window.close();
+            return glib::Propagation::Stop;
+        }
+        glib::Propagation::Proceed
+    });
+    window.add_controller(key_controller);
+}
+
+fn connect_translation_keys(input_view: &TextView, state: &Rc<RefCell<TranslationUiState>>) {
+    let key_controller = EventControllerKey::new();
+    key_controller.set_propagation_phase(PropagationPhase::Capture);
+    let state_weak = Rc::downgrade(state);
+    key_controller.connect_key_pressed(move |_, key, _, modifiers| {
+        let Some(state) = state_weak.upgrade() else {
+            return glib::Propagation::Proceed;
+        };
+        let manual_mode = state.borrow().controller.mode() == TranslationMode::Manual;
+        let action = input_key_behavior::action(
+            manual_mode,
+            input_key(key),
+            modifiers.contains(gdk::ModifierType::CONTROL_MASK),
+            modifiers.contains(gdk::ModifierType::SHIFT_MASK),
+            has_other_modifier(modifiers),
+        );
+        if action == KeyAction::Translate {
+            translate_now(&state);
+            glib::Propagation::Stop
+        } else {
+            glib::Propagation::Proceed
+        }
+    });
+    input_view.add_controller(key_controller);
+}
+
+fn input_key(key: gdk::Key) -> InputKey {
+    match key {
+        gdk::Key::Escape => InputKey::Escape,
+        gdk::Key::Return | gdk::Key::KP_Enter => InputKey::Enter,
+        _ => InputKey::Other,
+    }
+}
+
+fn has_other_modifier(modifiers: gdk::ModifierType) -> bool {
+    modifiers.intersects(
+        gdk::ModifierType::ALT_MASK
+            | gdk::ModifierType::SUPER_MASK
+            | gdk::ModifierType::HYPER_MASK
+            | gdk::ModifierType::META_MASK,
+    )
+}
+
+fn translate_now(state: &Rc<RefCell<TranslationUiState>>) {
+    cancel_pending_timer(state, None);
+    let operation = {
+        let mut state = state.borrow_mut();
+        state.debouncer.cancel();
+        if state.closed || invalid_language_pair(&state.controller) {
+            return;
+        }
+        state.controller.begin_translation()
+    };
+    render(state);
+    if let Some(operation) = operation {
+        start_translation(state, operation);
+    }
 }
 
 fn update_language_pair(
@@ -217,10 +304,16 @@ fn start_translation(state: &Rc<RefCell<TranslationUiState>>, operation: Transla
 
 fn render(state: &Rc<RefCell<TranslationUiState>>) {
     let state = state.borrow();
-    let pair = state.controller.language_pair();
-    let invalid_language_pair = !state.controller.input_text().trim().is_empty()
-        && matches!(pair.source_language(), SourceLanguage::Specific(source) if source == pair.target_language());
-    state
-        .view
-        .render(state.controller.state(), invalid_language_pair);
+    state.view.render(
+        state.controller.state(),
+        invalid_language_pair(&state.controller),
+    );
+}
+
+fn invalid_language_pair(controller: &TranslationController) -> bool {
+    !controller.input_text().trim().is_empty()
+        && matches!(
+            controller.language_pair().source_language(),
+            SourceLanguage::Specific(source) if source == controller.language_pair().target_language()
+        )
 }
