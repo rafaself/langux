@@ -1,5 +1,5 @@
 [workspace]
-members = ["."]
+members = [".", "crates/langux-core"]
 resolver = "3"
 
 [package]
@@ -11,4 +11,5 @@ description = "A local-first quick translator for Linux desktops"
 license = "GPL-3.0-or-later"
 
 [dependencies]
+langux-core = { path = "crates/langux-core" }
 gtk = { package = "gtk4", version = "0.10.3" }

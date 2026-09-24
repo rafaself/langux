@@ -400,7 +400,12 @@ name = "langux"
 version = "0.1.0"
 dependencies = [
  "gtk4",
+ "langux-core",
 ]
+
+[[package]]
+name = "langux-core"
+version = "0.1.0"
 
 [[package]]
 name = "libc"
