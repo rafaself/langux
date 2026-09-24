@@ -4,6 +4,7 @@ mod languages;
 mod translation_cache;
 mod translation_controller;
 mod translation_debounce;
+mod translation_provider;
 
 pub use languages::{
     Language, LanguagePair, LanguagePairError, LanguageSwapError, find_supported_language,
@@ -17,6 +18,7 @@ pub use translation_controller::{
 pub use translation_debounce::{
     DebounceTicket, DebounceUpdate, LIVE_TRANSLATION_DEBOUNCE, LiveTranslationDebouncer,
 };
+pub use translation_provider::{CancellationToken, TranslationProvider};
 
 /// A structurally valid language identifier.
 ///

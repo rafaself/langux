@@ -1,10 +1,6 @@
-use std::sync::{
-    Arc,
-    atomic::{AtomicBool, Ordering},
-};
-
 use crate::{
-    LanguagePair, TranslationCache, TranslationError, TranslationRequest, TranslationResult,
+    CancellationToken, LanguagePair, TranslationCache, TranslationError, TranslationProvider,
+    TranslationRequest, TranslationResult,
 };
 
 /// The default number of successful translations retained in memory.
@@ -50,7 +46,7 @@ pub enum TranslationState {
 #[derive(Clone, Debug)]
 pub struct TranslationOperation {
     request: TranslationRequest,
-    cancellation: Arc<AtomicBool>,
+    cancellation: CancellationToken,
 }
 
 impl TranslationOperation {
@@ -61,11 +57,15 @@ impl TranslationOperation {
 
     /// Returns whether the controller has cancelled this operation.
     pub fn is_cancelled(&self) -> bool {
-        self.cancellation.load(Ordering::Acquire)
+        self.cancellation.is_cancelled()
     }
 
-    fn cancel(&self) {
-        self.cancellation.store(true, Ordering::Release);
+    /// Returns a cloneable signal for passing to an injected provider.
+    ///
+    /// Clones share the controller-owned cancellation state, so a worker can
+    /// observe cancellation after the operation has moved off-thread.
+    pub fn cancellation_token(&self) -> CancellationToken {
+        self.cancellation.clone()
     }
 }
 
@@ -79,7 +79,7 @@ pub struct TranslationController {
     language_pair: LanguagePair,
     mode: TranslationMode,
     state: TranslationState,
-    active_operation: Option<Arc<AtomicBool>>,
+    active_operation: Option<CancellationToken>,
     translation_cache: TranslationCache,
 }
 
@@ -198,8 +198,8 @@ impl TranslationController {
             return None;
         }
 
-        let cancellation = Arc::new(AtomicBool::new(false));
-        self.active_operation = Some(Arc::clone(&cancellation));
+        let cancellation = CancellationToken::new();
+        self.active_operation = Some(cancellation.clone());
         self.state = TranslationState::Translating;
         Some(TranslationOperation {
             request,
@@ -217,7 +217,7 @@ impl TranslationController {
             return false;
         };
 
-        cancellation.store(true, Ordering::Release);
+        cancellation.cancel();
         self.state = TranslationState::Cancelled;
         true
     }
@@ -234,7 +234,9 @@ impl TranslationController {
         let Some(active_cancellation) = self.active_operation.as_ref() else {
             return false;
         };
-        if !Arc::ptr_eq(active_cancellation, &operation.cancellation) || operation.is_cancelled() {
+        if !active_cancellation.belongs_to_same_operation(&operation.cancellation)
+            || operation.is_cancelled()
+        {
             return false;
         }
 
@@ -247,7 +249,7 @@ impl TranslationController {
                 TranslationState::Success(result)
             }
             Err(TranslationError::Cancelled) => {
-                operation.cancel();
+                operation.cancellation.cancel();
                 TranslationState::Cancelled
             }
             Err(error) => TranslationState::Error(error),
@@ -271,9 +273,26 @@ impl TranslationController {
         &self.state
     }
 
+    /// Runs the current request through an explicitly injected provider.
+    ///
+    /// Blank input and cache hits do not call the provider. For asynchronous
+    /// execution, use [`Self::begin_translation`], pass the operation's
+    /// request and cancellation token to the provider, and apply its result
+    /// with [`Self::finish_translation`].
+    pub fn translate_with_provider<P>(&mut self, provider: &P) -> &TranslationState
+    where
+        P: TranslationProvider + ?Sized,
+    {
+        if let Some(operation) = self.begin_translation() {
+            let outcome = provider.translate(&operation.request, &operation.cancellation);
+            self.finish_translation(&operation, outcome);
+        }
+        &self.state
+    }
+
     fn cancel_active_operation(&mut self) {
         if let Some(cancellation) = self.active_operation.take() {
-            cancellation.store(true, Ordering::Release);
+            cancellation.cancel();
         }
     }
 }
