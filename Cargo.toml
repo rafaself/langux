@@ -1,5 +1,5 @@
 [workspace]
-members = [".", "crates/langux-core"]
+members = [".", "crates/langux-core", "crates/langux-secret-service"]
 resolver = "3"
 
 [package]
@@ -12,4 +12,5 @@ license = "GPL-3.0-or-later"
 
 [dependencies]
 langux-core = { path = "crates/langux-core" }
+langux-secret-service = { path = "crates/langux-secret-service" }
 gtk = { package = "gtk4", version = "0.10.3" }

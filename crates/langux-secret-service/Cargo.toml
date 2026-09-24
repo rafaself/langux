@@ -1,0 +1,14 @@
+[package]
+name = "langux-secret-service"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+description = "Linux Secret Service storage for Langux credentials"
+license = "GPL-3.0-or-later"
+
+[dependencies]
+langux-core = { path = "../langux-core" }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+dbus-secret-service = { version = "=4.0.1", default-features = false, features = ["crypto-rust"] }
+keyring = { version = "=3.6.3", default-features = false, features = ["sync-secret-service", "crypto-rust"] }
