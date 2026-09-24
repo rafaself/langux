@@ -1,11 +1,13 @@
 //! Platform-independent types shared by Langux translation behavior.
 
 mod languages;
+mod translation_controller;
 
 pub use languages::{
     Language, LanguagePair, LanguagePairError, LanguageSwapError, find_supported_language,
     supported_languages,
 };
+pub use translation_controller::{TranslationController, TranslationMode, TranslationState};
 
 /// A structurally valid language identifier.
 ///
