@@ -2,12 +2,16 @@
 
 mod languages;
 mod translation_controller;
+mod translation_debounce;
 
 pub use languages::{
     Language, LanguagePair, LanguagePairError, LanguageSwapError, find_supported_language,
     supported_languages,
 };
 pub use translation_controller::{TranslationController, TranslationMode, TranslationState};
+pub use translation_debounce::{
+    DebounceTicket, DebounceUpdate, LIVE_TRANSLATION_DEBOUNCE, LiveTranslationDebouncer,
+};
 
 /// A structurally valid language identifier.
 ///
