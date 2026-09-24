@@ -75,6 +75,48 @@ fn controller_uses_the_explicitly_injected_provider() {
 }
 
 #[test]
+fn injected_provider_drives_idle_translating_and_terminal_states() {
+    let success_provider =
+        FakeProvider::returning(Ok(TranslationResult::new("hello", Some(code("pt")))));
+    let mut success_controller =
+        TranslationController::new(pair("pt", "en"), TranslationMode::Live);
+    assert_eq!(success_controller.state(), &TranslationState::Idle);
+    success_controller.set_input_text("olá");
+
+    let success_operation = success_controller
+        .begin_translation()
+        .expect("nonblank input starts a translation");
+    assert_eq!(success_controller.state(), &TranslationState::Translating);
+    let success_outcome = success_provider.translate(
+        success_operation.request(),
+        &success_operation.cancellation_token(),
+    );
+    assert!(success_controller.finish_translation(&success_operation, success_outcome));
+    assert_eq!(
+        success_controller.state(),
+        &TranslationState::Success(TranslationResult::new("hello", Some(code("pt"))))
+    );
+
+    let error_provider = FakeProvider::returning(Err(TranslationError::NetworkFailure));
+    let mut error_controller = TranslationController::new(pair("pt", "en"), TranslationMode::Live);
+    error_controller.set_input_text("olá");
+
+    let error_operation = error_controller
+        .begin_translation()
+        .expect("nonblank input starts a translation");
+    assert_eq!(error_controller.state(), &TranslationState::Translating);
+    let error_outcome = error_provider.translate(
+        error_operation.request(),
+        &error_operation.cancellation_token(),
+    );
+    assert!(error_controller.finish_translation(&error_operation, error_outcome));
+    assert_eq!(
+        error_controller.state(),
+        &TranslationState::Error(TranslationError::NetworkFailure)
+    );
+}
+
+#[test]
 fn provider_and_controller_share_cancellation_and_ignore_late_completion() {
     let provider = FakeProvider::returning(Ok(TranslationResult::new("hello", None)));
     let mut controller = TranslationController::new(pair("pt", "en"), TranslationMode::Live);
