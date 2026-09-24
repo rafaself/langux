@@ -1,0 +1,14 @@
+[workspace]
+members = ["."]
+resolver = "3"
+
+[package]
+name = "langux"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+description = "A local-first quick translator for Linux desktops"
+license = "GPL-3.0-or-later"
+
+[dependencies]
+gtk = { package = "gtk4", version = "0.10.3" }
