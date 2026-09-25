@@ -5,6 +5,7 @@ use gtk::{Application, gio::ApplicationCommandLine};
 
 mod cli_args;
 mod credential_preferences;
+mod global_shortcuts;
 mod input_key_behavior;
 mod language_controls;
 mod language_selection;
@@ -33,7 +34,10 @@ fn main() -> glib::ExitCode {
         None,
     );
 
-    app.connect_activate(translator_window::show);
+    app.connect_activate(|app| {
+        global_shortcuts::register_toggle(app);
+        translator_window::show(app);
+    });
     app.connect_command_line(handle_command_line);
     app.run()
 }
@@ -47,9 +51,18 @@ fn handle_command_line(app: &Application, command_line: &ApplicationCommandLine)
     let toggle_option = command_line.options_dict().contains("toggle");
 
     match cli_args::parse(user_arguments) {
-        Ok(cli_args::Invocation::Show) if toggle_option => translator_window::toggle(app),
-        Ok(cli_args::Invocation::Show) => translator_window::show(app),
-        Ok(cli_args::Invocation::Toggle) => translator_window::toggle(app),
+        Ok(cli_args::Invocation::Show) if toggle_option => {
+            global_shortcuts::register_toggle(app);
+            translator_window::toggle(app);
+        }
+        Ok(cli_args::Invocation::Show) => {
+            global_shortcuts::register_toggle(app);
+            translator_window::show(app);
+        }
+        Ok(cli_args::Invocation::Toggle) => {
+            global_shortcuts::register_toggle(app);
+            translator_window::toggle(app);
+        }
         Ok(cli_args::Invocation::Help) => {
             print_command_line(command_line, cli_args::USAGE, false);
         }

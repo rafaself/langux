@@ -38,3 +38,26 @@ and focuses its input field. `langux --toggle` hides a visible window, or shows
 and focuses it when hidden; when no instance is running, it starts and shows
 one. `langux --help` prints the supported options. Unsupported options and
 positional arguments fail with a non-zero status.
+
+## Global activation
+
+At startup, Langux asks the XDG Desktop Portal GlobalShortcuts interface to bind
+the **Show or hide Langux** action, preferring `Super+T`. The desktop may ask you
+to approve or choose the key. If the portal is missing, unavailable, or the
+binding is declined, the app remains usable and `langux --toggle` continues to
+work.
+
+For GNOME, add a custom shortcut in **Settings → Keyboard → View and Customize
+Shortcuts → Custom Shortcuts** and use `langux --toggle` as its command.
+
+For Hyprland, add a binding to an included Hyprland config:
+
+```ini
+bind = SUPER, T, exec, langux --toggle
+```
+
+Omarchy's current Lua configuration can use `~/.config/hypr/bindings.lua`:
+
+```lua
+o.bind("SUPER + T", "Toggle Langux", "langux --toggle")
+```

@@ -18,7 +18,7 @@ thread_local! {
     static WINDOW_STATE: RefCell<Option<(glib::WeakRef<ApplicationWindow>, glib::WeakRef<TextView>)>> = const { RefCell::new(None) };
 }
 
-pub fn build(app: &Application) {
+fn build_with_startup_id(app: &Application, startup_id: Option<&str>) {
     let settings = settings::open();
     let initial_pair = settings::language_pair(&settings);
     let window = ApplicationWindow::builder()
@@ -101,26 +101,34 @@ pub fn build(app: &Application) {
         translation_view,
         Arc::new(SecretTranslationProvider),
     );
-    present_input(&window, &input_view);
+    present_input(&window, &input_view, startup_id);
 }
 
 pub fn show(app: &Application) {
+    show_with_startup_id(app, None);
+}
+
+pub fn show_with_startup_id(app: &Application, startup_id: Option<&str>) {
     if let Some((window, input_view)) = window_state() {
-        present_input(&window, &input_view);
+        present_input(&window, &input_view, startup_id);
     } else {
-        build(app);
+        build_with_startup_id(app, startup_id);
     }
 }
 
 pub fn toggle(app: &Application) {
+    toggle_with_startup_id(app, None);
+}
+
+pub fn toggle_with_startup_id(app: &Application, startup_id: Option<&str>) {
     if let Some((window, input_view)) = window_state() {
         if window.is_visible() {
             window.set_visible(false);
         } else {
-            present_input(&window, &input_view);
+            present_input(&window, &input_view, startup_id);
         }
     } else {
-        build(app);
+        build_with_startup_id(app, startup_id);
     }
 }
 
@@ -132,9 +140,15 @@ fn window_state() -> Option<(ApplicationWindow, TextView)> {
     })
 }
 
-fn present_input(window: &ApplicationWindow, input_view: &TextView) {
+fn present_input(window: &ApplicationWindow, input_view: &TextView, startup_id: Option<&str>) {
+    if let Some(startup_id) = startup_id {
+        window.set_startup_id(startup_id);
+    }
     gtk::prelude::GtkWindowExt::set_focus(window, Some(input_view));
     window.present();
+    if startup_id.is_some() {
+        window.set_startup_id("");
+    }
     input_view.grab_focus();
 }
 
