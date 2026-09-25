@@ -85,7 +85,7 @@ Build a bundle from the current checkout, then install it:
 
 ```sh
 dbus-run-session -- scripts/build-flatpak.sh
-flatpak install --user --bundle "dist/langux-0.1.0-$(flatpak --default-arch).flatpak"
+flatpak install --user --bundle "dist/langux-1.0.0-$(flatpak --default-arch).flatpak"
 flatpak run io.github.rafaself.Langux
 ```
 
@@ -98,10 +98,21 @@ in `flatpak/cargo-sources.json`, and the build runs offline against
 
 The bundle build writes a SHA-256 checksum beside the artifact. For a
 version-tagged release, the tag must match the package version in
-`Cargo.toml`, for example `v0.2.0` for package version `0.2.0`. The CI and
+`Cargo.toml`, for example `v1.0.0` for package version `1.0.0`. The CI and
 release workflows run the Rust checks before packaging; release bundles are
-published with their checksum. Existing `v0.1.0` and `v0.1.1` tags predate the
-rewrite and are the historical extension releases.
+published with a SHA-256 checksum that verifies the downloaded artifact's
+bytes.
+
+Rust crates are locked by `Cargo.lock` and their vendored source checksums.
+The build normalizes its source date epoch and the timestamp on the exported
+OSTree commit. This does not promise bit-for-bit identical bundles across clean
+builds: the GNOME 51 runtime and SDK branches and the `rust-stable` SDK
+extension are resolved from Flathub when building and can be updated without
+a source change. The `flatpak build-export --timestamp` option controls the
+OSTree commit timestamp embedded in the bundle; it does not pin those build
+inputs. The checksum lets users verify the exact published artifact, not that
+a rebuild will have identical bytes. Existing `v0.1.0` and `v0.1.1` tags
+predate the rewrite and are the historical extension releases.
 
 ## Application activation and shortcuts
 

@@ -78,18 +78,19 @@ dbus-run-session -- scripts/build-flatpak.sh
 Install and launch the locally built bundle:
 
 ```sh
-flatpak install --user --bundle "dist/langux-0.1.0-$(flatpak --default-arch).flatpak"
+flatpak install --user --bundle "dist/langux-1.0.0-$(flatpak --default-arch).flatpak"
 flatpak run io.github.rafaself.Langux
 ```
 
-The `0.1.0` in the bundle filename is the package version in this checkout;
+The `1.0.0` in the bundle filename is the package version in this checkout;
 use the version printed by the generated artifact if it has changed.
 
 The manifest uses the GNOME 51 runtime and SDK. It grants network access for
 translation, Wayland with fallback X11 and IPC for the GTK window, and access
-to the desktop Secret Service for the API key. GTK clipboard and XDG portal
-calls use Flatpak's portal proxy. The app does not request host filesystem or
-device access.
+to the desktop Secret Service for the API key. GTK/GDK clipboard access uses
+the selected Wayland or X11 display connection. XDG Desktop Portal calls, such
+as global shortcut registration, use the portal API separately. The app does
+not request host filesystem or device access.
 
 ## Configure Google Cloud Translation
 

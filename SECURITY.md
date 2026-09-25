@@ -28,8 +28,9 @@ history.
 
 The Flatpak requests network access, Wayland with fallback X11, IPC, and access
 to the desktop Secret Service D-Bus name. It does not request unrestricted host
-filesystem or device access. GTK clipboard and portal calls use Flatpak's
-portal proxy. See [`flatpak/io.github.rafaself.Langux.yml`](flatpak/io.github.rafaself.Langux.yml)
+filesystem or device access. GTK/GDK clipboard access uses the granted Wayland
+or X11 display connection; XDG Desktop Portal calls use a separate portal API.
+See [`flatpak/io.github.rafaself.Langux.yml`](flatpak/io.github.rafaself.Langux.yml)
 for the current sandbox permissions.
 
 ## Protecting an API key

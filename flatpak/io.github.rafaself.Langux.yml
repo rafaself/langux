@@ -9,15 +9,15 @@ command: langux
 finish-args:
   # Langux sends translations directly to Google Cloud Translation over HTTPS.
   - --share=network
-  # GTK uses Wayland where available and X11 as a fallback.
+  # GTK/GDK uses this display connection for windows and clipboard access.
   - --socket=wayland
   - --socket=fallback-x11
   - --share=ipc
+  # XDG Desktop Portal calls, such as GlobalShortcuts, use a separate API.
   # The small translator window uses CPU rendering and does not need /dev/dri.
   - --env=GSK_RENDERER=cairo
   # Credentials are stored through the desktop Secret Service.
   - --talk-name=org.freedesktop.secrets
-  # GTK clipboard and XDG portal APIs use Flatpak's portal proxy by default.
   # No host filesystem, device, or unrestricted D-Bus access is granted.
 
 modules:
