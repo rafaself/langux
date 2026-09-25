@@ -42,6 +42,30 @@ and has not passed. The compatibility record also lists unverified GTK
 interactions and live translation. The project does not claim that the full
 cross-desktop workflow has been validated.
 
+### GNOME tray support
+
+GNOME Shell needs an enabled StatusNotifier host to display Langux's tray icon.
+Install the official [AppIndicator and KStatusNotifierItem Support
+extension](https://extensions.gnome.org/extension/615/appindicator-support/)
+with a release marked active for your GNOME Shell version, then enable it in
+the Extensions app. Langux's end-to-end compatibility with a particular Shell
+and extension release has not yet been recorded; see
+[`COMPATIBILITY.md`](COMPATIBILITY.md).
+
+To check whether a host is registered, run:
+
+```sh
+gdbus call --session --dest org.kde.StatusNotifierWatcher \
+  --object-path /StatusNotifierWatcher \
+  --method org.freedesktop.DBus.Properties.Get \
+  org.kde.StatusNotifierWatcher IsStatusNotifierHostRegistered
+```
+
+A result containing `<true>` means a host is registered. If no watcher or host
+is available, Langux logs a warning and keeps its window hidden. Open it with
+`flatpak run io.github.rafaself.Langux --toggle`, or use `langux --toggle` for
+a native installation.
+
 ## Install
 
 See the [GitHub Releases](https://github.com/rafaself/langux/releases) page for

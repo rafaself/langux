@@ -75,3 +75,25 @@ translator-window checks above.
 
 The packaged workflow was exercised only on this Fedora/GNOME host. Hyprland
 validation remains deferred at the user's direction.
+
+### GNOME tray host setup (#38)
+
+GNOME Shell needs a registered StatusNotifier host to display Langux's SNI tray
+icon. Install and enable the official [AppIndicator and KStatusNotifierItem
+Support extension](https://extensions.gnome.org/extension/615/appindicator-support/)
+with a release marked active for the installed GNOME Shell version. The
+following session-bus query reports whether a host is registered:
+
+```sh
+gdbus call --session --dest org.kde.StatusNotifierWatcher \
+  --object-path /StatusNotifierWatcher \
+  --method org.freedesktop.DBus.Properties.Get \
+  org.kde.StatusNotifierWatcher IsStatusNotifierHostRegistered
+```
+
+A result containing `<true>` indicates a registered host. Without a watcher or
+registered host, Langux logs a warning and keeps the translator hidden; run
+`langux --toggle` (or `flatpak run io.github.rafaself.Langux --toggle`) to open
+it. This is setup guidance, not an end-to-end compatibility claim for a
+specific GNOME Shell or extension release. Issue #39 will record the tested
+versions and workflow.
