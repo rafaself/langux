@@ -29,3 +29,12 @@ Before the first local run, compile the app's settings schema with
 schema through the normal GSettings schema path. Langux stores translation
 defaults and cache preferences in GSettings; the API key remains in Linux
 Secret Service.
+
+## Application activation
+
+The app uses its stable GApplication ID to route launches in one desktop
+session to a single running instance. Launching `langux` shows the translator
+and focuses its input field. `langux --toggle` hides a visible window, or shows
+and focuses it when hidden; when no instance is running, it starts and shows
+one. `langux --help` prints the supported options. Unsupported options and
+positional arguments fail with a non-zero status.

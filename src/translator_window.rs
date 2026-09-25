@@ -1,3 +1,6 @@
+use std::cell::RefCell;
+
+use gtk::glib;
 use gtk::prelude::*;
 use gtk::{
     Application, ApplicationWindow, Box as GtkBox, Button, Label, Orientation, ScrolledWindow,
@@ -10,6 +13,11 @@ use crate::secret_translation_provider::SecretTranslationProvider;
 use crate::settings;
 use crate::translation_flow;
 use crate::translation_view::TranslationView;
+
+thread_local! {
+    static WINDOW_STATE: RefCell<Option<(glib::WeakRef<ApplicationWindow>, glib::WeakRef<TextView>)>> = const { RefCell::new(None) };
+}
+
 pub fn build(app: &Application) {
     let settings = settings::open();
     let initial_pair = settings::language_pair(&settings);
@@ -80,6 +88,9 @@ pub fn build(app: &Application) {
     content.append(&translation_view.section);
 
     window.set_child(Some(&content));
+    WINDOW_STATE.with(|state| {
+        *state.borrow_mut() = Some((window.downgrade(), input_view.downgrade()));
+    });
     translation_flow::connect(
         &window,
         &input_view,
@@ -90,7 +101,39 @@ pub fn build(app: &Application) {
         translation_view,
         Arc::new(SecretTranslationProvider),
     );
-    window.set_focus(Some(&input_view));
+    present_input(&window, &input_view);
+}
+
+pub fn show(app: &Application) {
+    if let Some((window, input_view)) = window_state() {
+        present_input(&window, &input_view);
+    } else {
+        build(app);
+    }
+}
+
+pub fn toggle(app: &Application) {
+    if let Some((window, input_view)) = window_state() {
+        if window.is_visible() {
+            window.set_visible(false);
+        } else {
+            present_input(&window, &input_view);
+        }
+    } else {
+        build(app);
+    }
+}
+
+fn window_state() -> Option<(ApplicationWindow, TextView)> {
+    WINDOW_STATE.with(|state| {
+        let state = state.borrow();
+        let (window, input_view) = state.as_ref()?;
+        Some((window.upgrade()?, input_view.upgrade()?))
+    })
+}
+
+fn present_input(window: &ApplicationWindow, input_view: &TextView) {
+    gtk::prelude::GtkWindowExt::set_focus(window, Some(input_view));
     window.present();
     input_view.grab_focus();
 }
