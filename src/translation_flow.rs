@@ -129,11 +129,11 @@ fn connect_escape_key(window: &ApplicationWindow) {
             modifiers.contains(gdk::ModifierType::SHIFT_MASK),
             has_other_modifier(modifiers),
         );
-        if action == KeyAction::Close
-            && let Some(window) = window_weak.upgrade()
-        {
-            window.close();
-            return glib::Propagation::Stop;
+        if action == KeyAction::Close {
+            if let Some(window) = window_weak.upgrade() {
+                window.close();
+                return glib::Propagation::Stop;
+            }
         }
         glib::Propagation::Proceed
     });

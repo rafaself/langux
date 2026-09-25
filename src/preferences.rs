@@ -225,15 +225,15 @@ fn connect_settings_to_preferences(
         let Some((source_index, target_index)) = language_indices(&pair) else {
             return;
         };
-        if let Some(source) = source_weak.upgrade()
-            && source.selected() != source_index
-        {
-            source.set_selected(source_index);
+        if let Some(source) = source_weak.upgrade() {
+            if source.selected() != source_index {
+                source.set_selected(source_index);
+            }
         }
-        if let Some(target) = target_weak.upgrade()
-            && target.selected() != target_index
-        {
-            target.set_selected(target_index);
+        if let Some(target) = target_weak.upgrade() {
+            if target.selected() != target_index {
+                target.set_selected(target_index);
+            }
         }
         if let Some(status) = status_weak.upgrade() {
             status.set_text("");

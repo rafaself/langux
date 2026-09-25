@@ -34,31 +34,24 @@ Other GNOME Shell versions may work, but only the version listed in
 
 ## Install a released version
 
-Download the installer, inspect it if desired, and run it with Bash:
+Version tags matching the Rust package version (for example, `v0.1.2` for
+`version = "0.1.2"` in `Cargo.toml`) run the release checks and publish an
+x86_64 Flatpak bundle plus a SHA-256 checksum. The bundle is built from the
+tagged source with the locked Rust dependencies.
+
+Download both files from the GitHub Release, configure Flathub, and verify the
+bundle before installing it. Replace the example filename with the version you
+downloaded:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/rafaself/langux/main/scripts/install.sh \
-  -o /tmp/langux-install.sh
-less /tmp/langux-install.sh
-bash /tmp/langux-install.sh
+flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+sha256sum --check langux-0.1.2-x86_64.flatpak.sha256
+flatpak install --user --bundle ./langux-0.1.2-x86_64.flatpak
+flatpak run io.github.rafaself.Langux
 ```
 
-The installer resolves the latest GitHub Release, downloads the extension and its
-SHA-256 checksum, verifies the archive before installation, and installs only for
-the current user. It does not use `sudo`.
-
-Enable Langux after installation:
-
-```sh
-gnome-extensions enable langux@rafaself.github.io
-```
-
-Restart the session if necessary (log out and back in, or press `Alt+F2` and type
-`r` on X11). Open Preferences with:
-
-```sh
-gnome-extensions prefs langux@rafaself.github.io
-```
+The Flatpak bundle contains the application. Flatpak obtains the GNOME runtime
+from Flathub when it is not already installed.
 
 ## Install from a checkout
 
@@ -107,6 +100,22 @@ Flatpak's portal proxy; no host filesystem or device access is requested.
 
 The Flatpak build is offline and pinned to `Cargo.lock`. If that lockfile changes,
 regenerate `flatpak/cargo-sources.json` with the [Flatpak Cargo source generator](https://github.com/flatpak/flatpak-builder-tools/tree/41c20aa10819cdb2a4f3ca171758a96d1955c018/cargo).
+
+To create a standalone bundle and checksum locally, install either the
+`flatpak-builder` command or the Flathub `org.flatpak.Builder` app, then run:
+
+```sh
+flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+scripts/build-flatpak.sh
+```
+
+The build script uses the current Git commit time for `SOURCE_DATE_EPOCH`, the
+locked Cargo dependency sources, and the manifest's GNOME 51 runtime. Flatpak's
+bundle format also records its generation time, so separate bundle files can
+have different checksums even when they contain the same exported application
+commit. Release automation repeats the quality checks and packaging for the
+version tag before publishing the bundle and its checksum. The checksum verifies
+the downloaded artifact against the published file.
 
 ## Configure Google Cloud Translation
 

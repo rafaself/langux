@@ -82,11 +82,12 @@ impl LiveTranslationDebouncer {
             return self.cancel();
         }
 
-        if let Some(pending) = &self.pending
-            && pending.input_text == controller.input_text()
-            && pending.language_pair == *controller.language_pair()
-        {
-            return DebounceUpdate::Unchanged;
+        if let Some(pending) = &self.pending {
+            if pending.input_text == controller.input_text()
+                && pending.language_pair == *controller.language_pair()
+            {
+                return DebounceUpdate::Unchanged;
+            }
         }
 
         let cancel = self.pending.take().map(|pending| pending.ticket);

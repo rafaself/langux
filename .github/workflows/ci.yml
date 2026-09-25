@@ -3,11 +3,8 @@ name: CI
 on:
   push:
     branches:
-      - main
-      - develop
+      - '**'
   pull_request:
-    branches:
-      - main
   workflow_dispatch:
 
 permissions:
@@ -19,33 +16,34 @@ concurrency:
 
 jobs:
   check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out source
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          node-version: 22
-          cache: npm
+          persist-credentials: false
 
-      - name: Install system dependencies
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@166cdcfd11aee3cb47222f9ddb555ce30ddb9659 # v1
+        with:
+          toolchain: 1.85.1
+          components: clippy, rustfmt
+
+      - name: Install native build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install --no-install-recommends -y libglib2.0-bin
+          sudo apt-get install --no-install-recommends --yes libdbus-1-dev libgtk-4-dev pkg-config
 
-      - name: Install development dependencies
-        run: npm ci
+      - name: Run Rust quality checks
+        run: scripts/check-rust.sh
 
-      - name: Run checks
-        run: npm run check
-
-      - name: Build release archive
-        run: scripts/package.sh
-
-      - name: Verify release archive
+      - name: Install Flatpak build tools
         run: |
-          test -f dist/langux.zip
-          test -f dist/langux.zip.sha256
-          (cd dist && sha256sum -c langux.zip.sha256)
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends --yes flatpak flatpak-builder
+
+      - name: Configure Flathub
+        run: flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+
+      - name: Build and verify the standalone release bundle
+        run: scripts/build-flatpak.sh
