@@ -1,0 +1,8 @@
+{
+  "uuid": "langux-shell@rafaself.github.io",
+  "name": "Langux Popup",
+  "description": "A GNOME Shell panel popup for the resident Langux translator.",
+  "shell-version": ["49"],
+  "version": 1,
+  "url": "https://github.com/rafaself/langux"
+}

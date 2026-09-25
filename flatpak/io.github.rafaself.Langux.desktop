@@ -8,3 +8,9 @@ Type=Application
 Categories=Utility;
 Keywords=translate;translation;language;
 StartupNotify=false
+Actions=GnomeShellPopup;
+
+[Desktop Action GnomeShellPopup]
+Name=Open Langux popup
+Exec=langux --gnome-shell-adapter
+Icon=io.github.rafaself.Langux

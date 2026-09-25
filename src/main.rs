@@ -2,10 +2,13 @@ use gtk::gio;
 use gtk::gio::prelude::*;
 use gtk::glib;
 use gtk::{Application, gio::ApplicationCommandLine};
+use std::cell::Cell;
+use std::rc::Rc;
 
 mod application_actions;
 mod cli_args;
 mod credential_preferences;
+mod gnome_shell_bridge;
 mod input_key_behavior;
 mod language_controls;
 mod language_selection;
@@ -31,15 +34,32 @@ fn main() -> glib::ExitCode {
         "Show or hide the Langux window",
         None,
     );
+    app.add_main_option(
+        "gnome-shell-adapter",
+        glib::Char(0),
+        glib::OptionFlags::HIDDEN,
+        glib::OptionArg::None,
+        "Start for the GNOME Shell presentation adapter",
+        None,
+    );
 
-    app.connect_startup(|app| {
+    let adapter_startup = Rc::new(Cell::new(false));
+    app.connect_handle_local_options({
+        let adapter_startup = Rc::clone(&adapter_startup);
+        move |_app, options| {
+            adapter_startup.set(options.contains("gnome-shell-adapter"));
+            std::ops::ControlFlow::Continue(())
+        }
+    });
+    app.connect_startup(move |app| {
         // GTK normally exits when its last window closes. Keep the process
-        // alive while the tray integration owns the visible entry point.
+        // alive while the desktop integration owns the visible entry point.
         application_actions::hold_resident(app);
         application_actions::install(app);
-        status_notifier::install(app);
+        translator_window::initialize(app);
+        gnome_shell_bridge::install(app, adapter_startup.get());
     });
-    app.connect_shutdown(|_| status_notifier::shutdown());
+    app.connect_shutdown(|_| gnome_shell_bridge::shutdown());
     app.connect_command_line(handle_command_line);
     app.run()
 }
@@ -58,6 +78,7 @@ fn handle_command_line(app: &Application, command_line: &ApplicationCommandLine)
         .skip(1)
         .map(|argument| argument.as_os_str());
     let toggle_option = command_line.options_dict().contains("toggle");
+    let adapter_option = command_line.options_dict().contains("gnome-shell-adapter");
 
     match cli_args::parse(user_arguments) {
         Ok(cli_args::Invocation::Help) => {
@@ -65,6 +86,12 @@ fn handle_command_line(app: &Application, command_line: &ApplicationCommandLine)
             quit_if_cold_start(app, command_line);
         }
         Ok(invocation) => {
+            if adapter_option {
+                // For a remote activation, startup has already happened in
+                // the resident process. For a cold start, install() already
+                // used this option to suppress the StatusNotifier item.
+                gnome_shell_bridge::set_adapter_enabled(app, true);
+            }
             if let Some(action) = application_actions::requested_action(invocation, toggle_option) {
                 application_actions::activate(app, action);
             }

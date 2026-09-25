@@ -25,6 +25,45 @@ struct TranslationUiState {
     closed: bool,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct TranslationSnapshot {
+    pub source_language: String,
+    pub target_language: String,
+    pub input_text: String,
+    pub translated_text: String,
+    pub status: String,
+    pub phase: &'static str,
+    pub is_error: bool,
+    pub mode: &'static str,
+    pub detected_source_language: String,
+}
+
+#[derive(Clone)]
+pub struct TranslationFlowHandle {
+    state: Weak<RefCell<TranslationUiState>>,
+}
+
+impl TranslationFlowHandle {
+    pub fn translate_now(&self) {
+        if let Some(state) = self.state.upgrade() {
+            translate_now(&state);
+        }
+    }
+
+    pub fn snapshot(&self) -> Option<TranslationSnapshot> {
+        let state = self.state.upgrade()?;
+        let snapshot = snapshot(&state.borrow().controller);
+        Some(snapshot)
+    }
+
+    pub fn copy_result(&self) -> bool {
+        let Some(state) = self.state.upgrade() else {
+            return false;
+        };
+        state.borrow().view.copy_result()
+    }
+}
+
 pub fn connect(
     window: &ApplicationWindow,
     input_view: &TextView,
@@ -33,7 +72,7 @@ pub fn connect(
     settings: gtk::gio::Settings,
     view: TranslationView,
     provider: Arc<dyn TranslationProvider>,
-) {
+) -> TranslationFlowHandle {
     let state = Rc::new(RefCell::new(TranslationUiState {
         controller: TranslationController::with_cache_capacity(
             initial_pair,
@@ -123,6 +162,9 @@ pub fn connect(
     });
 
     render(&state);
+    TranslationFlowHandle {
+        state: Rc::downgrade(&state),
+    }
 }
 
 fn connect_escape_key(window: &ApplicationWindow) {
@@ -461,6 +503,55 @@ fn render(state: &Rc<RefCell<TranslationUiState>>) {
         state.controller.state(),
         invalid_language_pair(&state.controller),
     );
+}
+
+fn snapshot(controller: &TranslationController) -> TranslationSnapshot {
+    let presentation = crate::translation_presentation::present(controller.state());
+    let invalid_pair = invalid_language_pair(controller);
+    let (source_language, target_language) = {
+        let pair = controller.language_pair();
+        let source = match pair.source_language() {
+            SourceLanguage::AutoDetect => "auto",
+            SourceLanguage::Specific(code) => code.as_str(),
+        };
+        (
+            source.to_owned(),
+            pair.target_language().as_str().to_owned(),
+        )
+    };
+    let (phase, is_error) = match controller.state() {
+        langux_core::TranslationState::Idle => ("idle", false),
+        langux_core::TranslationState::Translating => ("translating", false),
+        langux_core::TranslationState::Cancelled => ("cancelled", false),
+        langux_core::TranslationState::Success(_) => ("success", false),
+        langux_core::TranslationState::Error(_) => ("error", true),
+    };
+    let status = if invalid_pair {
+        "Choose different source and target languages."
+    } else {
+        presentation.status
+    };
+    TranslationSnapshot {
+        source_language,
+        target_language,
+        input_text: controller.input_text().to_owned(),
+        translated_text: presentation
+            .result
+            .map(|result| result.translated_text.clone())
+            .unwrap_or_default(),
+        status: status.to_owned(),
+        phase,
+        is_error,
+        mode: match controller.mode() {
+            TranslationMode::Live => "live",
+            TranslationMode::Manual => "manual",
+        },
+        detected_source_language: presentation
+            .result
+            .and_then(|result| result.detected_source_language.as_ref())
+            .map(|language| language.as_str().to_owned())
+            .unwrap_or_default(),
+    }
 }
 
 fn invalid_language_pair(controller: &TranslationController) -> bool {

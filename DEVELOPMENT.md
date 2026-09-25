@@ -1,9 +1,11 @@
 # Development
 
 The active Langux application is a Rust workspace with a GTK 4 interface. It
-uses Linux Secret Service for the Google Cloud Translation API key. Normal
-startup does not call XDG Desktop Portals. The frozen GJS extension is kept as
-historical reference; it is not part of the Rust build.
+uses Linux Secret Service for the Google Cloud Translation API key. The
+optional GNOME Shell adapter in `gnome-shell-adapter/` owns only panel and
+popup presentation; it sends translation actions to the resident Rust app
+over a narrow, authenticated D-Bus interface. The historical GJS translation
+extension remains frozen and is not used by the adapter.
 
 ## Prerequisites
 
@@ -70,6 +72,24 @@ window in the existing application instance. Normal startup does not request a
 global shortcut. `langux --help` lists supported options. Unsupported options
 and positional arguments return a non-zero status.
 
+On GNOME Shell 49, build and install the host-side popup adapter separately:
+Disable the historical `langux@rafaself.github.io` extension first if it is
+enabled; the installer stops with this instruction when it would otherwise
+create a second panel entry.
+
+```sh
+scripts/install-gnome-shell-adapter.sh
+gnome-extensions enable langux-shell@rafaself.github.io
+```
+
+The adapter package uses GJS and GNOME Shell libraries already provided by
+GNOME; it adds no Rust or production package dependencies. Its desktop action
+starts the Rust process hidden, and the app suppresses its StatusNotifier item
+while the adapter is active so GNOME displays one Langux entry. Right-click
+the panel icon and choose **Quit Langux** to end the resident process. To build
+the adapter bundle without installing it, run
+`scripts/package-gnome-shell-adapter.sh`.
+
 ## Build a Flatpak bundle
 
 The Flatpak manifest uses the GNOME 51 runtime and SDK and the Rust SDK
@@ -98,16 +118,21 @@ in `flatpak/cargo-sources.json`, and the build runs offline against
 [Flatpak Cargo source generator](https://github.com/flatpak/flatpak-builder-tools/tree/41c20aa10819cdb2a4f3ca171758a96d1955c018/cargo).
 
 The sandbox grants only the `org.freedesktop.secrets` and
-`org.kde.StatusNotifierWatcher` session-bus names. The SNI item uses a name
-under `io.github.rafaself.Langux`, which Flatpak allows the app to own by
-default. The manifest does not grant the full session bus or a wildcard
-third-party bus namespace. Langux has no start-on-login option, does not add
-an autostart entry, and does not request the XDG Background portal.
+`org.kde.StatusNotifierWatcher` session-bus names. The SNI item and the GNOME
+adapter bridge use the application's default app-owned D-Bus namespace; the
+bridge checks that each caller is the current `org.gnome.Shell` owner. The
+adapter adds no Flatpak bus permission, full session-bus access, or wildcard
+third-party bus namespace. The Flatpak does not add a desktop autostart entry
+or request the XDG Background portal. When enabled, the GNOME Shell extension
+starts the resident app during its own session startup.
 
-Tray display requires a desktop StatusNotifierWatcher and a registered tray
-host. If either is unavailable, Langux stays hidden after normal startup and
-logs a warning; `flatpak run io.github.rafaself.Langux --toggle` remains an
-explicit way to show or hide the window.
+With the GNOME adapter enabled, the Shell extension owns the panel entry and
+the app hides its StatusNotifier item to prevent duplicates. On other desktops
+or when the adapter is disabled, tray display requires a desktop
+StatusNotifierWatcher and a registered tray host. If either is unavailable,
+Langux stays hidden after normal startup and logs a warning;
+`flatpak run io.github.rafaself.Langux --toggle` remains an explicit way to
+show or hide the GTK window.
 
 The bundle build writes a SHA-256 checksum beside the artifact. For a
 version-tagged release, the tag must match the package version in
@@ -153,6 +178,14 @@ invoke the same command.
   ```lua
   o.bind("SUPER + T", "Toggle Langux", "flatpak run io.github.rafaself.Langux --toggle")
   ```
+
+## GNOME Shell adapter validation
+
+The adapter declares GNOME Shell 49 in `metadata.json`. Automated Rust checks
+cover its IPC data model, but the graphical popup and the full desktop workflow
+must still be validated on a GNOME host. The current record and limits are in
+[`COMPATIBILITY.md`](COMPATIBILITY.md); issue #39 tracks the Fedora/GNOME
+follow-up. Hyprland/Waybar support remains deferred under issue #40.
 
 ## Validation limits
 

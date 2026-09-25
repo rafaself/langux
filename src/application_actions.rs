@@ -32,7 +32,7 @@ pub fn requested_action(invocation: Invocation, toggle_option: bool) -> Option<A
     match invocation {
         Invocation::Toggle => Some(Action::Toggle),
         Invocation::Resident if toggle_option => Some(Action::Toggle),
-        Invocation::Resident | Invocation::Help => None,
+        Invocation::Resident | Invocation::GnomeShellAdapter | Invocation::Help => None,
     }
 }
 
@@ -137,6 +137,11 @@ mod tests {
             None,
             "a normal launch must stay resident without opening the window"
         );
+    }
+
+    #[test]
+    fn shell_adapter_start_keeps_the_translator_window_hidden() {
+        assert_eq!(requested_action(Invocation::GnomeShellAdapter, false), None);
     }
 
     #[test]

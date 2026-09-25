@@ -6,6 +6,7 @@ pub const USAGE: &str = "Usage: langux [--toggle] [--help]\n";
 pub enum Invocation {
     Resident,
     Toggle,
+    GnomeShellAdapter,
     Help,
 }
 
@@ -22,6 +23,7 @@ pub fn parse<'a>(
     arguments: impl IntoIterator<Item = &'a OsStr>,
 ) -> Result<Invocation, InvalidArgument> {
     let mut toggle = false;
+    let mut gnome_shell_adapter = false;
     let mut help = false;
     let mut options_ended = false;
 
@@ -33,6 +35,8 @@ pub fn parse<'a>(
 
         if !options_ended && argument == OsStr::new("--toggle") {
             toggle = true;
+        } else if !options_ended && argument == OsStr::new("--gnome-shell-adapter") {
+            gnome_shell_adapter = true;
         } else if !options_ended
             && (argument == OsStr::new("--help") || argument == OsStr::new("-h"))
         {
@@ -44,6 +48,8 @@ pub fn parse<'a>(
 
     Ok(if help {
         Invocation::Help
+    } else if gnome_shell_adapter {
+        Invocation::GnomeShellAdapter
     } else if toggle {
         Invocation::Toggle
     } else {
@@ -68,6 +74,14 @@ mod tests {
     #[test]
     fn toggle_option_requests_toggle_activation() {
         assert_eq!(parse_args(&["--toggle"]), Ok(Invocation::Toggle));
+    }
+
+    #[test]
+    fn shell_adapter_option_requests_resident_adapter_start() {
+        assert_eq!(
+            parse_args(&["--gnome-shell-adapter"]),
+            Ok(Invocation::GnomeShellAdapter)
+        );
     }
 
     #[test]

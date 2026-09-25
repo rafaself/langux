@@ -7,6 +7,7 @@ use langux_core::{TranslationState, find_supported_language};
 
 use crate::translation_presentation::present;
 
+#[derive(Clone)]
 pub struct TranslationView {
     pub section: GtkBox,
     result_buffer: TextBuffer,
@@ -138,6 +139,17 @@ impl TranslationView {
             self.detected_source_label.set_text("");
             self.detected_source_label.set_visible(false);
         }
+    }
+
+    pub fn copy_result(&self) -> bool {
+        let (start, end) = self.result_buffer.bounds();
+        let text = self.result_buffer.text(&start, &end, true);
+        if text.is_empty() {
+            return false;
+        }
+        let display = self.section.display();
+        display.clipboard().set_text(text.as_str());
+        true
     }
 }
 

@@ -3,9 +3,10 @@ use std::cell::RefCell;
 use gtk::glib;
 use gtk::prelude::*;
 use gtk::{
-    Application, ApplicationWindow, Box as GtkBox, Button, Label, Orientation, ScrolledWindow,
-    TextView, WrapMode,
+    Application, ApplicationWindow, Box as GtkBox, Button, DropDown, Label, Orientation,
+    ScrolledWindow, TextView, WrapMode,
 };
+use langux_core::preferred_language_pair;
 use std::sync::Arc;
 
 use crate::language_controls::LanguageControls;
@@ -15,7 +16,23 @@ use crate::translation_flow;
 use crate::translation_view::TranslationView;
 
 thread_local! {
-    static WINDOW_STATE: RefCell<Option<(glib::WeakRef<ApplicationWindow>, glib::WeakRef<TextView>)>> = const { RefCell::new(None) };
+    static WINDOW_STATE: RefCell<Option<WindowState>> = const { RefCell::new(None) };
+}
+
+#[derive(Clone)]
+struct WindowState {
+    window: glib::WeakRef<ApplicationWindow>,
+    input_view: glib::WeakRef<TextView>,
+    source_dropdown: glib::WeakRef<DropDown>,
+    target_dropdown: glib::WeakRef<DropDown>,
+    flow: translation_flow::TranslationFlowHandle,
+    settings: gtk::gio::Settings,
+}
+
+pub fn initialize(app: &Application) {
+    if window_state().is_none() {
+        build(app);
+    }
 }
 
 fn build(app: &Application) {
@@ -94,23 +111,33 @@ fn build(app: &Application) {
     content.append(&translation_view.section);
 
     window.set_child(Some(&content));
-    WINDOW_STATE.with(|state| {
-        *state.borrow_mut() = Some((window.downgrade(), input_view.downgrade()));
-    });
-    translation_flow::connect(
+    let flow = translation_flow::connect(
         &window,
         &input_view,
         &language_controls,
         initial_pair,
-        settings,
+        settings.clone(),
         translation_view,
         Arc::new(SecretTranslationProvider),
     );
-    present_input(&window, &input_view);
+    WINDOW_STATE.with(|state| {
+        *state.borrow_mut() = Some(WindowState {
+            window: window.downgrade(),
+            input_view: input_view.downgrade(),
+            source_dropdown: language_controls.source_dropdown.downgrade(),
+            target_dropdown: language_controls.target_dropdown.downgrade(),
+            flow,
+            settings: settings.clone(),
+        });
+    });
 }
 
 pub fn toggle(app: &Application) {
-    if let Some((window, input_view)) = window_state() {
+    if let Some(state) = window_state() {
+        let (Some(window), Some(input_view)) = (state.window.upgrade(), state.input_view.upgrade())
+        else {
+            return;
+        };
         toggle_visibility(
             window.is_visible(),
             || present_input(&window, &input_view),
@@ -118,7 +145,78 @@ pub fn toggle(app: &Application) {
         );
     } else {
         build(app);
+        if let Some(state) = window_state() {
+            if let (Some(window), Some(input_view)) =
+                (state.window.upgrade(), state.input_view.upgrade())
+            {
+                present_input(&window, &input_view);
+            }
+        }
     }
+}
+
+pub fn set_input_text(text: &str) {
+    let Some(state) = window_state() else {
+        return;
+    };
+    let Some(input_view) = state.input_view.upgrade() else {
+        return;
+    };
+    let buffer = input_view.buffer();
+    let (start, end) = buffer.bounds();
+    if buffer.text(&start, &end, true).as_str() != text {
+        buffer.set_text(text);
+    }
+}
+
+pub fn set_language_pair(source: &str, target: &str) -> bool {
+    let Some(pair) = preferred_language_pair(source, target) else {
+        return false;
+    };
+    let Some((source_index, target_index)) = crate::language_selection::language_indices(&pair)
+    else {
+        return false;
+    };
+    let Some(state) = window_state() else {
+        return false;
+    };
+    let (Some(source_dropdown), Some(target_dropdown)) = (
+        state.source_dropdown.upgrade(),
+        state.target_dropdown.upgrade(),
+    ) else {
+        return false;
+    };
+    source_dropdown.set_selected(source_index);
+    target_dropdown.set_selected(target_index);
+    true
+}
+
+pub fn translate_now() {
+    if let Some(state) = window_state() {
+        state.flow.translate_now();
+    }
+}
+
+pub fn clear() {
+    set_input_text("");
+}
+
+pub fn copy_result() -> bool {
+    window_state().is_some_and(|state| state.flow.copy_result())
+}
+
+pub fn snapshot() -> Option<translation_flow::TranslationSnapshot> {
+    window_state()?.flow.snapshot()
+}
+
+pub fn open_settings(app: &Application) {
+    let Some(state) = window_state() else {
+        return;
+    };
+    let Some(window) = state.window.upgrade() else {
+        return;
+    };
+    crate::preferences::present(app, &window, state.settings);
 }
 
 fn toggle_visibility(is_visible: bool, show: impl FnOnce(), hide: impl FnOnce()) {
@@ -134,11 +232,10 @@ fn hide_on_close_request(hide: impl FnOnce()) -> glib::Propagation {
     glib::Propagation::Stop
 }
 
-fn window_state() -> Option<(ApplicationWindow, TextView)> {
+fn window_state() -> Option<WindowState> {
     WINDOW_STATE.with(|state| {
         let state = state.borrow();
-        let (window, input_view) = state.as_ref()?;
-        Some((window.upgrade()?, input_view.upgrade()?))
+        state.as_ref().cloned()
     })
 }
 

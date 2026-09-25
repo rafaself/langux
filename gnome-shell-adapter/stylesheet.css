@@ -1,0 +1,71 @@
+.langux-content-item {
+  padding: 0;
+  spacing: 0;
+}
+
+.langux-popup {
+  min-width: 400px;
+  padding: 8px 4px;
+  spacing: 8px;
+}
+
+.langux-header,
+.langux-language-row,
+.langux-action-row {
+  spacing: 8px;
+}
+
+.langux-title {
+  font-weight: bold;
+}
+
+.langux-icon-button,
+.langux-language-button,
+.langux-swap-button,
+.langux-action-button {
+  border-radius: 8px;
+  padding: 5px 10px;
+  background-color: rgba(255, 255, 255, 0.09);
+}
+
+.langux-icon-button:hover,
+.langux-language-button:hover,
+.langux-swap-button:hover,
+.langux-action-button:hover {
+  background-color: rgba(255, 255, 255, 0.16);
+}
+
+.langux-header-icon {
+  icon-size: 16px;
+}
+
+.langux-swap-button {
+  min-width: 36px;
+}
+
+.langux-input {
+  min-height: 68px;
+  padding: 8px;
+  border: 2px solid #e18b4a;
+  border-radius: 8px;
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+.langux-separator {
+  min-height: 2px;
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.langux-section-title,
+.langux-status {
+  color: rgba(255, 255, 255, 0.58);
+}
+
+.langux-result {
+  min-height: 48px;
+  max-height: 80px;
+}
+
+.langux-status-error {
+  color: #ff8a80;
+}

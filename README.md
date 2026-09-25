@@ -4,18 +4,21 @@
   <img src="data/icon-readme.svg" width="64" height="64" alt="Langux icon">
 </p>
 
-Langux is a quick translator for the Linux desktop. The active application is a
-standalone Rust and GTK 4 app: keep it resident in the desktop session, open or
-hide its window, type or paste text, translate with Google Cloud Translation
-Basic v2, and copy the result. Translation requests go directly from your
-computer to Google. Langux has no backend, accounts, telemetry, or persistent
-translation history.
+Langux is a quick translator for the Linux desktop. Its resident Rust
+application handles preferences, credentials, providers, and Google Cloud
+Translation Basic v2 requests. On GNOME Shell, a thin Shell adapter presents
+the translator in a compact popup below its panel icon; other desktops can
+open the GTK window through the StatusNotifier tray item or `--toggle`.
+Translation requests go directly from your computer to Google. Langux has no
+backend, accounts, telemetry, or persistent translation history.
 
 ## Features
 
-- Start Langux without opening its window; run `langux --toggle` to show or
-  hide the translator.
-- Focus the input when the window opens; use `Escape` to close it.
+- Keep Langux resident without opening a standalone translator window; on
+  GNOME Shell, click the panel icon to open the anchored popup.
+- Use the panel icon's right-click menu to quit; close or dismiss the popup to
+  return to the tray-only state.
+- On other desktops, run `langux --toggle` to show or hide the GTK window.
 - Translate after one second without input, or select manual translation.
 - Use `Shift+Enter` to insert a line. In manual mode, `Enter` or `Ctrl+Enter`
   translates; in live mode, `Ctrl+Enter` translates immediately.
@@ -42,17 +45,34 @@ and has not passed. The compatibility record also lists unverified GTK
 interactions and live translation. The project does not claim that the full
 cross-desktop workflow has been validated.
 
-### GNOME tray support
+### GNOME Shell popup
 
-GNOME Shell needs an enabled StatusNotifier host to display Langux's tray icon.
-Install the official [AppIndicator and KStatusNotifierItem Support
+The compact GNOME popup is provided by a separate Shell extension. If the
+historical Langux extension is enabled, disable it first to avoid a duplicate
+panel entry. Then build and install the new adapter after installing the
+Langux desktop application:
+
+```sh
+scripts/install-gnome-shell-adapter.sh
+gnome-extensions enable langux-shell@rafaself.github.io
+```
+
+Disable the historical extension with
+`gnome-extensions disable langux@rafaself.github.io` when it is present.
+
+The adapter starts Langux hidden when it is enabled in the session and displays
+the translator directly below its panel icon. It owns only the GNOME
+presentation; the Rust application still handles translation, settings, and
+credentials. Disabling the adapter restores the StatusNotifier tray item. The
+adapter currently declares GNOME Shell 49 compatibility; its end-to-end host
+validation is tracked separately in [`COMPATIBILITY.md`](COMPATIBILITY.md).
+
+If the adapter is disabled, GNOME Shell needs a StatusNotifier host to display
+the fallback tray item. Install the official [AppIndicator and
+KStatusNotifierItem Support
 extension](https://extensions.gnome.org/extension/615/appindicator-support/)
 with a release marked active for your GNOME Shell version, then enable it in
-the Extensions app. Langux's end-to-end compatibility with a particular Shell
-and extension release has not yet been recorded; see
-[`COMPATIBILITY.md`](COMPATIBILITY.md).
-
-To check whether a host is registered, run:
+the Extensions app. To check whether a host is registered, run:
 
 ```sh
 gdbus call --session --dest org.kde.StatusNotifierWatcher \
@@ -190,12 +210,12 @@ current platform validation and its limits.
 
 ## Legacy GNOME Shell extension
 
-The GJS extension is frozen and is not part of the active Langux application.
-Its last release, [v0.1.1](https://github.com/rafaself/langux/releases/tag/v0.1.1),
-and its source tag remain available for users who need the old extension.
-Historical extension setup notes are in
-[`RELEASE_NOTES.md`](RELEASE_NOTES.md). The extension's GJS files and install
-scripts in this repository are not used to build or run the Rust app.
+The historical translation extension is frozen. Its last release,
+[v0.1.1](https://github.com/rafaself/langux/releases/tag/v0.1.1), and source
+tag remain available for users who need that old extension. Historical setup
+notes are in [`RELEASE_NOTES.md`](RELEASE_NOTES.md). The isolated
+`gnome-shell-adapter/` extension is new presentation code; it does not use the
+historical extension's translation logic or files.
 
 ## Contributing
 

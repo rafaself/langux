@@ -137,3 +137,16 @@ AppIndicator extension became inactive along with other GNOME extensions. The
 session was not unlocked or restarted. As a result, the full Fedora/GNOME
 acceptance workflow remains incomplete and issue #39 stays open. Hyprland
 validation remains deferred at the user's direction.
+
+## GNOME Shell popup adapter (#41)
+
+The implementation adds a new Shell-side presentation adapter under
+`gnome-shell-adapter/`. It declares GNOME Shell 49, launches the hidden Rust
+application through a desktop action, and uses the app's D-Bus namespace for
+language/input state and translation actions. The Rust app authorizes bridge
+calls only from the current `org.gnome.Shell` D-Bus owner. No additional
+Flatpak bus permission or production Rust dependency is part of the adapter.
+
+This implementation record does not claim a Fedora/GNOME graphical acceptance
+pass. Issue #39 remains open for the follow-up host validation, and issue #40
+remains deferred. Hyprland/Waybar support and validation are not claimed.
