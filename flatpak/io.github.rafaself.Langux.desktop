@@ -1,10 +1,10 @@
 [Desktop Entry]
 Name=Langux
 Comment=Translate text between languages
-Exec=langux --toggle
+Exec=langux
 Icon=io.github.rafaself.Langux
 Terminal=false
 Type=Application
 Categories=Utility;
 Keywords=translate;translation;language;
-StartupNotify=true
+StartupNotify=false

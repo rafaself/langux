@@ -2,6 +2,10 @@
 
 This record documents the available validation for issue [#29](https://github.com/rafaself/langux/issues/29).
 
+The results below describe the pre-tray behavior at the recorded revision.
+They do not validate the resident, hidden startup and action dispatch added in
+issue [#34](https://github.com/rafaself/langux/issues/34).
+
 ## Artifact and host
 
 - Validation date: 2026-09-24.

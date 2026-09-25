@@ -4,16 +4,17 @@
   <img src="data/icon-readme.svg" width="64" height="64" alt="Langux icon">
 </p>
 
-Langux is a keyboard-first translator for the Linux desktop. The active
-application is a standalone Rust and GTK 4 app: open or toggle its window, type
-or paste text, translate with Google Cloud Translation Basic v2, and copy the
-result. Translation requests go directly from your computer to Google. Langux
-has no backend, accounts, telemetry, or persistent translation history.
+Langux is a quick translator for the Linux desktop. The active application is a
+standalone Rust and GTK 4 app: keep it resident in the desktop session, open or
+hide its window, type or paste text, translate with Google Cloud Translation
+Basic v2, and copy the result. Translation requests go directly from your
+computer to Google. Langux has no backend, accounts, telemetry, or persistent
+translation history.
 
 ## Features
 
-- Open or toggle the translator with the XDG GlobalShortcuts portal or a
-  desktop shortcut that runs `langux --toggle`.
+- Start Langux without opening its window; run `langux --toggle` to show or
+  hide the translator.
 - Focus the input when the window opens; use `Escape` to close it.
 - Translate after one second without input, or select manual translation.
 - Use `Shift+Enter` to insert a line. In manual mode, `Enter` or `Ctrl+Enter`
@@ -37,9 +38,9 @@ work, but are outside the project's support guarantee.
 The available desktop validation is recorded in
 [`COMPATIBILITY.md`](COMPATIBILITY.md). The Flatpak was built and exercised on
 Fedora Linux 43 with GNOME Shell 49.10. **The Omarchy/Hyprland run is deferred**
-and has not passed; the compatibility record also lists unverified GTK
-interactions, live translation, and portal shortcut activation. The project
-does not claim that the full cross-desktop workflow has been validated.
+and has not passed. The compatibility record also lists unverified GTK
+interactions and live translation. The project does not claim that the full
+cross-desktop workflow has been validated.
 
 ## Install
 
@@ -56,7 +57,7 @@ install the bundle with:
 ```sh
 sha256sum --check langux-VERSION-ARCH.flatpak.sha256
 flatpak install --user --bundle ./langux-VERSION-ARCH.flatpak
-flatpak run io.github.rafaself.Langux
+flatpak run io.github.rafaself.Langux --toggle
 ```
 
 Replace `VERSION` and `ARCH` with the names in the release assets. The Flatpak
@@ -88,9 +89,8 @@ use the version printed by the generated artifact if it has changed.
 The manifest uses the GNOME 51 runtime and SDK. It grants network access for
 translation, Wayland with fallback X11 and IPC for the GTK window, and access
 to the desktop Secret Service for the API key. GTK/GDK clipboard access uses
-the selected Wayland or X11 display connection. XDG Desktop Portal calls, such
-as global shortcut registration, use the portal API separately. The app does
-not request host filesystem or device access.
+the selected Wayland or X11 display connection. The app does not currently
+call XDG Desktop Portals or request host filesystem or device access.
 
 ## Configure Google Cloud Translation
 
@@ -125,16 +125,19 @@ target languages, translation mode, and cache settings.
 - The cache is discarded when the application process exits. Translation
   history is never written to disk.
 
-## Global shortcuts
+## Opening and hiding from a command line
 
-At startup, Langux asks the XDG GlobalShortcuts portal to bind **Super+T** for
-showing or hiding the app. The desktop may ask you to approve or choose a key.
-The portal binding belongs to the running process. If the portal is
-unavailable, declined, or the app has exited, use a desktop shortcut that runs
-the same app with `--toggle`.
+The desktop launcher starts one resident Langux process with its window hidden.
+To open or hide the translator from a terminal, pass `--toggle`:
 
-For a Flatpak install, use `flatpak run io.github.rafaself.Langux --toggle` as
-the shortcut command. For a native install, use `langux --toggle`.
+For a Flatpak install, run:
+
+```sh
+flatpak run io.github.rafaself.Langux --toggle
+```
+
+For a native install, run `langux --toggle`. A custom desktop shortcut can run
+the same command if needed.
 
 - GNOME: add the command under **Settings → Keyboard → View and Customize
   Shortcuts → Custom Shortcuts**.

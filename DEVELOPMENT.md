@@ -1,9 +1,9 @@
 # Development
 
 The active Langux application is a Rust workspace with a GTK 4 interface. It
-uses Linux Secret Service for the Google Cloud Translation API key and XDG
-Desktop Portals for optional global shortcut registration. The frozen GJS
-extension is kept as historical reference; it is not part of the Rust build.
+uses Linux Secret Service for the Google Cloud Translation API key. Normal
+startup does not call XDG Desktop Portals. The frozen GJS extension is kept as
+historical reference; it is not part of the Rust build.
 
 ## Prerequisites
 
@@ -64,10 +64,11 @@ glib-compile-schemas schemas/
 RUSTUP_TOOLCHAIN=1.85.1 GSETTINGS_SCHEMA_DIR="$PWD/schemas" cargo run --locked -- --toggle
 ```
 
+The desktop launcher starts Langux resident with the translator window hidden.
 `langux --toggle` starts the app if it is not running, or shows/hides the
-window in the existing application instance. `langux --help` lists supported
-options. Unsupported options and positional arguments return a non-zero
-status.
+window in the existing application instance. Normal startup does not request a
+global shortcut. `langux --help` lists supported options. Unsupported options
+and positional arguments return a non-zero status.
 
 ## Build a Flatpak bundle
 
@@ -116,22 +117,16 @@ predate the rewrite and are the historical extension releases.
 
 ## Application activation and shortcuts
 
-The app uses its stable GApplication ID to route launches in one desktop
-session to the running instance. A normal launch shows the translator and
-focuses its input. `--toggle` hides a visible window or shows and focuses a
-hidden one. The portal shortcut belongs to the running process and is released
-when that process exits. The last-window shutdown behavior was not verified
-end to end; use the documented `--toggle` desktop binding as the fallback for
-both cold launches and toggles.
+The app uses its stable GApplication ID and command-line handler to route
+launches in one desktop session to the resident primary process. A normal
+launch stays hidden. `--toggle` sends the shared Toggle action to show or hide
+the translator window. The shared action interface also provides Quit for
+desktop integrations. Normal startup does not request a global shortcut or
+open the window.
 
-At startup, Langux asks the XDG Desktop Portal GlobalShortcuts interface to
-bind **Super+T**. The desktop may ask you to approve or choose the key. Portal
-support and approval are optional: if registration fails, the app remains
-usable and `--toggle` continues to work.
-
-For a Flatpak install, configure a desktop shortcut with
-`flatpak run io.github.rafaself.Langux --toggle`. For a native install, use
-`langux --toggle`.
+For a Flatpak install, run `flatpak run io.github.rafaself.Langux --toggle`.
+For a native install, use `langux --toggle`. A custom desktop shortcut can
+invoke the same command.
 
 - GNOME: add a custom shortcut in **Settings → Keyboard → View and Customize
   Shortcuts → Custom Shortcuts**.

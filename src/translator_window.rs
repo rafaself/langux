@@ -18,7 +18,7 @@ thread_local! {
     static WINDOW_STATE: RefCell<Option<(glib::WeakRef<ApplicationWindow>, glib::WeakRef<TextView>)>> = const { RefCell::new(None) };
 }
 
-fn build_with_startup_id(app: &Application, startup_id: Option<&str>) {
+fn build(app: &Application) {
     let settings = settings::open();
     let initial_pair = settings::language_pair(&settings);
     let window = ApplicationWindow::builder()
@@ -103,34 +103,18 @@ fn build_with_startup_id(app: &Application, startup_id: Option<&str>) {
         translation_view,
         Arc::new(SecretTranslationProvider),
     );
-    present_input(&window, &input_view, startup_id);
-}
-
-pub fn show(app: &Application) {
-    show_with_startup_id(app, None);
-}
-
-pub fn show_with_startup_id(app: &Application, startup_id: Option<&str>) {
-    if let Some((window, input_view)) = window_state() {
-        present_input(&window, &input_view, startup_id);
-    } else {
-        build_with_startup_id(app, startup_id);
-    }
+    present_input(&window, &input_view);
 }
 
 pub fn toggle(app: &Application) {
-    toggle_with_startup_id(app, None);
-}
-
-pub fn toggle_with_startup_id(app: &Application, startup_id: Option<&str>) {
     if let Some((window, input_view)) = window_state() {
         if window.is_visible() {
             window.set_visible(false);
         } else {
-            present_input(&window, &input_view, startup_id);
+            present_input(&window, &input_view);
         }
     } else {
-        build_with_startup_id(app, startup_id);
+        build(app);
     }
 }
 
@@ -142,15 +126,9 @@ fn window_state() -> Option<(ApplicationWindow, TextView)> {
     })
 }
 
-fn present_input(window: &ApplicationWindow, input_view: &TextView, startup_id: Option<&str>) {
-    if let Some(startup_id) = startup_id {
-        window.set_startup_id(startup_id);
-    }
+fn present_input(window: &ApplicationWindow, input_view: &TextView) {
     gtk::prelude::GtkWindowExt::set_focus(window, Some(input_view));
     window.present();
-    if startup_id.is_some() {
-        window.set_startup_id("");
-    }
     input_view.grab_focus();
 }
 

@@ -2,9 +2,9 @@ use std::ffi::OsStr;
 
 pub const USAGE: &str = "Usage: langux [--toggle] [--help]\n";
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Invocation {
-    Show,
+    Resident,
     Toggle,
     Help,
 }
@@ -47,7 +47,7 @@ pub fn parse<'a>(
     } else if toggle {
         Invocation::Toggle
     } else {
-        Invocation::Show
+        Invocation::Resident
     })
 }
 
@@ -61,8 +61,8 @@ mod tests {
     }
 
     #[test]
-    fn no_arguments_shows_the_window() {
-        assert_eq!(parse_args(&[]), Ok(Invocation::Show));
+    fn no_arguments_requests_resident_start() {
+        assert_eq!(parse_args(&[]), Ok(Invocation::Resident));
     }
 
     #[test]
@@ -91,7 +91,7 @@ mod tests {
 
     #[test]
     fn arguments_after_option_terminator_are_rejected() {
-        assert_eq!(parse_args(&["--"]), Ok(Invocation::Show));
+        assert_eq!(parse_args(&["--"]), Ok(Invocation::Resident));
         assert_eq!(
             parse_args(&["--", "input.txt"]),
             Err(InvalidArgument("input.txt".to_owned()))

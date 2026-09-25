@@ -11,8 +11,6 @@ description = "A local-first quick translator for Linux desktops"
 license = "GPL-3.0-or-later"
 
 [dependencies]
-ashpd = { version = "0.12.3", default-features = false, features = ["async-std"] }
-futures-util = "0.3"
 langux-core = { path = "crates/langux-core" }
 langux-secret-service = { path = "crates/langux-secret-service" }
 gtk = { package = "gtk4", version = "0.10.3" }

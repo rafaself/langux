@@ -3,9 +3,9 @@ use gtk::gio::prelude::*;
 use gtk::glib;
 use gtk::{Application, gio::ApplicationCommandLine};
 
+mod application_actions;
 mod cli_args;
 mod credential_preferences;
-mod global_shortcuts;
 mod input_key_behavior;
 mod language_controls;
 mod language_selection;
@@ -20,10 +20,7 @@ mod translator_window;
 const APPLICATION_ID: &str = "io.github.rafaself.Langux";
 
 fn main() -> glib::ExitCode {
-    let app = Application::builder()
-        .application_id(APPLICATION_ID)
-        .flags(gio::ApplicationFlags::HANDLES_COMMAND_LINE)
-        .build();
+    let app = build_application();
 
     app.add_main_option(
         "toggle",
@@ -34,12 +31,21 @@ fn main() -> glib::ExitCode {
         None,
     );
 
-    app.connect_activate(|app| {
-        global_shortcuts::register_toggle(app);
-        translator_window::show(app);
+    app.connect_startup(|app| {
+        // GTK normally exits when its last window closes. Keep the process
+        // alive while the tray integration owns the visible entry point.
+        application_actions::hold_resident(app);
+        application_actions::install(app);
     });
     app.connect_command_line(handle_command_line);
     app.run()
+}
+
+fn build_application() -> Application {
+    Application::builder()
+        .application_id(APPLICATION_ID)
+        .flags(gio::ApplicationFlags::HANDLES_COMMAND_LINE)
+        .build()
 }
 
 fn handle_command_line(app: &Application, command_line: &ApplicationCommandLine) -> glib::ExitCode {
@@ -51,20 +57,14 @@ fn handle_command_line(app: &Application, command_line: &ApplicationCommandLine)
     let toggle_option = command_line.options_dict().contains("toggle");
 
     match cli_args::parse(user_arguments) {
-        Ok(cli_args::Invocation::Show) if toggle_option => {
-            global_shortcuts::register_toggle(app);
-            translator_window::toggle(app);
-        }
-        Ok(cli_args::Invocation::Show) => {
-            global_shortcuts::register_toggle(app);
-            translator_window::show(app);
-        }
-        Ok(cli_args::Invocation::Toggle) => {
-            global_shortcuts::register_toggle(app);
-            translator_window::toggle(app);
-        }
         Ok(cli_args::Invocation::Help) => {
             print_command_line(command_line, cli_args::USAGE, false);
+            quit_if_cold_start(app, command_line);
+        }
+        Ok(invocation) => {
+            if let Some(action) = application_actions::requested_action(invocation, toggle_option) {
+                application_actions::activate(app, action);
+            }
         }
         Err(error) => {
             print_command_line(
@@ -72,11 +72,18 @@ fn handle_command_line(app: &Application, command_line: &ApplicationCommandLine)
                 &format!("langux: {error}\n{}", cli_args::USAGE),
                 true,
             );
+            quit_if_cold_start(app, command_line);
             return glib::ExitCode::new(2);
         }
     }
 
     glib::ExitCode::SUCCESS
+}
+
+fn quit_if_cold_start(app: &Application, command_line: &ApplicationCommandLine) {
+    if !command_line.is_remote() {
+        application_actions::quit(app);
+    }
 }
 
 fn print_command_line(command_line: &ApplicationCommandLine, message: &str, to_stderr: bool) {
@@ -102,5 +109,21 @@ fn print_command_line(command_line: &ApplicationCommandLine, message: &str, to_s
                 message.as_ptr(),
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{APPLICATION_ID, build_application};
+    use gtk::gio::ApplicationFlags;
+    use gtk::prelude::*;
+
+    #[test]
+    fn command_line_activations_are_forwarded_to_one_application_instance() {
+        let app = build_application();
+
+        assert_eq!(app.application_id().as_deref(), Some(APPLICATION_ID));
+        assert!(app.flags().contains(ApplicationFlags::HANDLES_COMMAND_LINE));
+        assert!(!app.flags().contains(ApplicationFlags::NON_UNIQUE));
     }
 }

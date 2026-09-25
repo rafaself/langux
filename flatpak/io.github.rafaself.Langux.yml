@@ -13,7 +13,6 @@ finish-args:
   - --socket=wayland
   - --socket=fallback-x11
   - --share=ipc
-  # XDG Desktop Portal calls, such as GlobalShortcuts, use a separate API.
   # The small translator window uses CPU rendering and does not need /dev/dri.
   - --env=GSK_RENDERER=cairo
   # Credentials are stored through the desktop Secret Service.
