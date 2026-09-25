@@ -150,3 +150,56 @@ Flatpak bus permission or production Rust dependency is part of the adapter.
 This implementation record does not claim a Fedora/GNOME graphical acceptance
 pass. Issue #39 remains open for the follow-up host validation, and issue #40
 remains deferred. Hyprland/Waybar support and validation are not claimed.
+
+### Fedora GNOME popup validation attempt after #41
+
+This resumed run built and installed the current Flatpak and GNOME Shell popup
+adapter on the Fedora host. It stopped before popup interaction because the
+running GNOME Shell session did not recognize the newly installed adapter.
+The session was not restarted or logged out.
+
+#### Artifact and host
+
+- Validation date: 2026-09-25.
+- Source checkout: `883d147` (`develop`, #41).
+- Flatpak bundle: `dist/langux-1.0.0-x86_64.flatpak`, built from this checkout;
+  SHA-256 `cd4efd47848d73510f990a9c4b87ceb1c8388ed0d9d8c37c1a6913d058ea49db`.
+- Installed user Flatpak commit:
+  `b464ead59999eb7880577a540b4c6503a7a2a92565cb2e5cc8db19ceaf69cb5e`
+  (`stable`, x86_64); runtime `org.gnome.Platform/x86_64/51`.
+- Tested host: Fedora Linux 43 Workstation, GNOME Shell 49.10, Wayland,
+  Flatpak 1.16.6.
+- SNI host: AppIndicator and KStatusNotifierItem Support, RPM
+  `gnome-shell-extension-appindicator-61-1.fc43`; extension state was active,
+  and `StatusNotifierWatcher.IsStatusNotifierHostRegistered` returned true.
+- The session was unlocked at preflight (`org.gnome.ScreenSaver.GetActive`
+  returned false).
+- Adapter bundle SHA-256:
+  `cec60368ef6d334c946e0bbb63631c51059750f7a2f7293b9059720030f71c3b`.
+
+#### Build and setup results
+
+| Step | Result | Evidence and limits |
+| --- | --- | --- |
+| Rust checks | Pass | `RUSTUP_TOOLCHAIN=1.85.1 scripts/check-rust.sh`: formatting, Clippy, 88 workspace tests, and release build passed. |
+| Flatpak build and installation | Pass | `dbus-run-session -- scripts/build-flatpak.sh` completed and verified the bundle checksum; the user `stable` Flatpak was updated to the commit above. |
+| Adapter packaging and file installation | Pass | `scripts/install-gnome-shell-adapter.sh` packaged and copied the adapter into `~/.local/share/gnome-shell/extensions/langux-shell@rafaself.github.io/`; its files and metadata were present. |
+| Avoiding duplicate Langux entries | Partial | Disabled the historical `langux@rafaself.github.io` extension as required by the installer; its files remain installed. The AppIndicator host stayed enabled. |
+| Adapter recognition and activation | Blocked | `gnome-extensions info langux-shell@rafaself.github.io` reported that the extension does not exist. `gnome-extensions enable langux-shell@rafaself.github.io` returned exit status 2 with the same message. The installer notes that GNOME Shell may require a logout/login to load a newly installed extension; no session restart or logout was attempted. |
+
+#### Tray workflow results
+
+| Workflow | Result | Evidence and limits |
+| --- | --- | --- |
+| Normal resident launch, one tray icon, hidden popup | Not tested | The app was not launched after the adapter activation attempt failed. |
+| Reference-matched popup placement and visual appearance | Blocked | The adapter was not recognized by the live Shell session, so it could not be opened. No screenshot was captured in this run. |
+| Popup dismiss/close, resident process, and Quit cleanup | Not tested | These checks require the popup adapter to load and were not attempted. |
+| Repeated launch and one-instance behavior | Not tested | The app was not launched. |
+| Translation and clipboard copy | Not tested | No key was inspected, added, or exposed; the UI was unavailable. |
+| Default global shortcut | Not verified at runtime | No app or adapter startup occurred to observe portal activity or bindings. |
+
+Issue #39 remains open because the live GNOME Shell session did not recognize
+the new adapter, leaving the tray popup and process lifecycle unverified. The
+same Flatpak revision and adapter can be checked again after a normal GNOME
+session reload. Translation and copy also remain unverified. Hyprland/Waybar
+validation remains deferred under #40.
