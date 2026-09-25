@@ -95,5 +95,45 @@ A result containing `<true>` indicates a registered host. Without a watcher or
 registered host, Langux logs a warning and keeps the translator hidden; run
 `langux --toggle` (or `flatpak run io.github.rafaself.Langux --toggle`) to open
 it. This is setup guidance, not an end-to-end compatibility claim for a
-specific GNOME Shell or extension release. Issue #39 will record the tested
-versions and workflow.
+specific GNOME Shell or extension release. The partial issue #39 run below
+records one tested host and workflow.
+
+## Tray-first Fedora GNOME follow-up (#39)
+
+This is a partial run of the tray-first acceptance workflow. It was stopped
+when the active GNOME session locked; the remaining desktop checks require an
+unlocked graphical session.
+
+### Artifact and host
+
+- Validation date: 2026-09-25.
+- Source checkout: `232e3f8650def9a8a711b6917c1f239a2c0b9297` (`develop`, #38).
+- Artifact: the existing `dist/langux-1.0.0-x86_64.flatpak` from #37; it was
+  not rebuilt during this run.
+- Artifact SHA-256: `54c5ef975c4423e8e8e8e298e03b51a949d35a99f7cac69386db7e28b20ec104`.
+- Installed Flatpak app commit: `cd92b139c4e39d6e83d6a6d90fa1a9581180f253b42f1505074cb6b3e7788625`
+  (`stable`, user installation).
+- Runtime: `org.gnome.Platform/x86_64/51`.
+- Tested host: Fedora Linux 43 Workstation, GNOME Shell 49.10, Wayland,
+  Flatpak 1.16.6.
+- Tray host: `gnome-shell-extension-appindicator` RPM `61-1.fc43`; the
+  AppIndicator/KStatusNotifierItem extension was active at the start.
+
+### Results
+
+| Workflow | Result | Evidence and limits |
+| --- | --- | --- |
+| Normal launch and hidden window | Partial | `flatpak run --branch=stable io.github.rafaself.Langux` initially left one stable app instance running with no translator frame in the AT-SPI tree. The SNI watcher initially reported a registered host and listed Langux's item. About a minute later, the app log warned that no watcher was running. The cause and resident behavior after host loss were not established. |
+| SNI activation and Show/Hide | Pass | Calling the item's SNI `Activate` method made the Langux frame visible in AT-SPI. Invoking dbusmenu item ID 1 (`Show / Hide Translator`) hid it; a subsequent `Activate` showed it again. |
+| Tray item visibility | Partial | The watcher listed the Langux item, and the GNOME Shell accessibility tree exposed a `Langux` button with `visible=true` and `showing=false`. GNOME Shell denied both window introspection and screenshot requests, so the icon was not visually confirmed. |
+| Close-to-hide | Not tested | The session locked before the window-close action could be checked. |
+| Menu Quit and cleanup | Not tested | By the time the Quit event was attempted, the app's item bus name no longer had an owner, so the action could not be invoked. |
+| One-instance behavior | Partial | A second normal `flatpak run` returned 0. An immediate `flatpak ps` snapshot showed two app instances; a later snapshot showed only the original stable instance. No sustained duplicate was confirmed, but the transient second instance was not explained. |
+| Translation and copy | Not tested | No translation request was made and the API key was not inspected. Clipboard behavior remains unverified. |
+| Default global shortcut | Not tested at runtime | This run did not capture portal calls during startup or inspect registered shortcut bindings. |
+
+During the run, GNOME's ScreenSaver portal reported the session locked and the
+AppIndicator extension became inactive along with other GNOME extensions. The
+session was not unlocked or restarted. As a result, the full Fedora/GNOME
+acceptance workflow remains incomplete and issue #39 stays open. Hyprland
+validation remains deferred at the user's direction.
