@@ -47,13 +47,16 @@ fn build_with_startup_id(app: &Application, startup_id: Option<&str>) {
     title_row.append(&settings_button);
     content.append(&title_row);
 
-    let window_for_preferences = window.clone();
+    let window_for_preferences = window.downgrade();
     let app_for_preferences = app.clone();
     let settings_for_preferences = settings.clone();
     settings_button.connect_clicked(move |_| {
+        let Some(window) = window_for_preferences.upgrade() else {
+            return;
+        };
         crate::preferences::present(
             &app_for_preferences,
-            &window_for_preferences,
+            &window,
             settings_for_preferences.clone(),
         );
     });

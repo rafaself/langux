@@ -364,12 +364,17 @@ fn reconcile_live_timer(state: &Rc<RefCell<TranslationUiState>>) {
                     if state.closed {
                         return;
                     }
-                    let TranslationUiState {
-                        controller,
-                        debouncer,
-                        ..
-                    } = &mut *state;
-                    debouncer.begin_if_pending(ticket, controller)
+                    if invalid_language_pair(&state.controller) {
+                        state.debouncer.cancel();
+                        None
+                    } else {
+                        let TranslationUiState {
+                            controller,
+                            debouncer,
+                            ..
+                        } = &mut *state;
+                        debouncer.begin_if_pending(ticket, controller)
+                    }
                 };
                 render(&state);
                 if let Some(operation) = operation {

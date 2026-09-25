@@ -38,9 +38,6 @@ impl TranslationProvider for SecretTranslationProvider {
 fn map_secret_store_error(error: SecretStoreError) -> TranslationError {
     match error {
         SecretStoreError::NotConfigured => TranslationError::MissingCredential,
-        SecretStoreError::Unavailable
-        | SecretStoreError::Locked
-        | SecretStoreError::Failed
-        | SecretStoreError::AlreadyConfigured => TranslationError::ProviderFailure,
+        _ => TranslationError::ProviderFailure,
     }
 }

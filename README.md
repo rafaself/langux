@@ -101,6 +101,20 @@ enabled, and translation caching disabled.
   zero disables it; disabling or clearing the cache removes existing entries.
 - The cache is cleared when the extension is disabled and is never written to disk.
 
+## Global shortcuts
+
+Langux requests a `Super+T` shortcut through the XDG GlobalShortcuts portal when
+it starts. Portal shortcuts are tied to the running Langux process; closing the
+last window exits the app and releases the portal binding. To activate Langux
+after its window has been closed, configure your desktop or window manager to
+run `langux --toggle` for the shortcut you want. This command launches Langux
+when it is not running and toggles the window when it is already running.
+
+- On GNOME, add `langux --toggle` as a custom keyboard shortcut in Keyboard
+  Settings.
+- On Hyprland, add a binding such as `bind = SUPER, T, exec, langux --toggle` to
+  your Hyprland configuration.
+
 ## Privacy and data flow
 
 - Translation text is sent directly from the local machine to Google Cloud Translation

@@ -149,23 +149,24 @@ fn connect_language_preferences(
     status: &Label,
 ) {
     let target_weak = target.downgrade();
-    let settings = settings.clone();
-    let status = status.downgrade();
+    let source_settings = settings.clone();
+    let status_weak = status.downgrade();
+    let source_status_weak = status_weak.clone();
     source.connect_selected_notify(move |source| {
         let Some(target) = target_weak.upgrade() else {
             return;
         };
-        persist_pair_from_controls(&settings, source, &target, &status);
+        persist_pair_from_controls(&source_settings, source, &target, &source_status_weak);
     });
 
     let source_weak = source.downgrade();
-    let settings = settings.clone();
-    let status = status.downgrade();
+    let target_settings = settings.clone();
+    let target_status_weak = status_weak;
     target.connect_selected_notify(move |target| {
         let Some(source) = source_weak.upgrade() else {
             return;
         };
-        persist_pair_from_controls(&settings, &source, target, &status);
+        persist_pair_from_controls(&target_settings, &source, target, &target_status_weak);
     });
 }
 
@@ -288,6 +289,6 @@ fn connect_settings_to_preferences(
         target_handler,
         mode_handler,
         cache_enabled_handler,
-        cache_capacity_handler,
+        capacity_handler,
     ]
 }

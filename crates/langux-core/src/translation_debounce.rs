@@ -292,6 +292,22 @@ mod tests {
     }
 
     #[test]
+    fn invalid_pair_selected_after_scheduling_cannot_start_live_request() {
+        let mut debouncer = LiveTranslationDebouncer::default();
+        let mut controller = live_controller("hello", pair(SourceLanguage::AutoDetect, "en"));
+        let (_, ticket, _) = scheduled(debouncer.update(&controller));
+
+        controller.set_language_pair(pair(SourceLanguage::Specific(code("en")), "en"));
+
+        assert!(
+            debouncer
+                .begin_if_pending(ticket, &mut controller)
+                .is_none()
+        );
+        assert_eq!(controller.state(), &crate::TranslationState::Idle);
+    }
+
+    #[test]
     fn auto_detect_source_is_valid_and_pending_work_is_one_shot() {
         let mut debouncer = LiveTranslationDebouncer::default();
         let mut controller = live_controller("hello", pair(SourceLanguage::AutoDetect, "en"));
