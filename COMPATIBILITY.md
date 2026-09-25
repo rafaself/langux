@@ -45,3 +45,33 @@ Validation on Omarchy + Hyprland + Wayland is **deferred at the user's direction
 - `cargo clippy --workspace --all-targets --locked -- -D warnings`: no result. The installed SDK's `cargo-clippy` launcher could not select a default Rust toolchain. Clippy findings are therefore unverified.
 
 GTK interaction, live Google translation, and Omarchy/Hyprland validation remain unverified; this record does not claim they passed.
+
+## Tray-first Flatpak packaging (#37)
+
+This validation covers the SNI and filtered session-bus policy added in
+`0df8c3419385bbf7eb67662efcd502f3286f5f84`. It does not replace the earlier
+translator-window checks above.
+
+### Artifact and host
+
+- Validation date: 2026-09-25.
+- Artifact: `dist/langux-1.0.0-x86_64.flatpak`.
+- Flatpak app commit: `cd92b139c4e39d6e83d6a6d90fa1a9581180f253b42f1505074cb6b3e7788625` (`stable`, user installation).
+- Artifact SHA-256: `54c5ef975c4423e8e8e8e298e03b51a949d35a99f7cac69386db7e28b20ec104`.
+- Runtime: `org.gnome.Platform/x86_64/51`.
+- Tested host: Fedora Linux 43 Workstation, GNOME Shell 49.10, Wayland, Flatpak 1.16.6.
+
+### Results
+
+| Workflow | Result | Evidence and limits |
+| --- | --- | --- |
+| Rust validation | Pass | `scripts/check-rust.sh` passed in the GNOME 51 SDK using Rust 1.85.1: formatting, Clippy, all 83 workspace tests, and release build. |
+| Bundle build and install | Pass | `scripts/build-flatpak.sh` completed and verified the SHA-256 checksum; the bundle installed as the `stable` user ref. |
+| Session-bus policy | Pass | The installed policy grants `talk` only to `org.freedesktop.secrets` and `org.kde.StatusNotifierWatcher`. The SNI item name is in Langux's default app-owned namespace. No full session-bus socket or external own-name wildcard is granted. |
+| Normal launch and SNI registration | Pass | A normal `flatpak run` stayed resident; the live GNOME watcher listed `io.github.rafaself.Langux.StatusNotifierItem_2_1` and reported a host registered. The window was not visually inspected. |
+| Tray Quit and cleanup | Pass | Invoking dbusmenu item ID 2 (`Quit`) exited the app; `flatpak ps` showed no Langux process and the watcher removed the item. |
+| Missing tray host | Partial | The app and docs report that it stays hidden and can be opened explicitly with `--toggle`; unit coverage verifies normal startup requests no window action and SNI shutdown/watcher loss. A packaged launch in a hostless graphical session was not verified. |
+| Start on login | Not supported | Langux has no autostart setting or entry and does not request the XDG Background portal. |
+
+The packaged workflow was exercised only on this Fedora/GNOME host. Hyprland
+validation remains deferred at the user's direction.
