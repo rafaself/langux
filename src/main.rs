@@ -1,10 +1,13 @@
 use gtk::Application;
 use gtk::prelude::*;
 
+mod credential_preferences;
 mod input_key_behavior;
 mod language_controls;
 mod language_selection;
+mod preferences;
 mod secret_translation_provider;
+mod settings;
 mod translation_flow;
 mod translation_presentation;
 mod translation_view;

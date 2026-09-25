@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="io.github.rafaself.langux"
+          path="/io/github/rafaself/langux/">
+    <key name="source-language" type="s">
+      <default>'auto'</default>
+      <summary>Source language</summary>
+      <description>The language of the text to translate. The special value 'auto' enables automatic detection.</description>
+    </key>
+    <key name="target-language" type="s">
+      <default>'en'</default>
+      <summary>Target language</summary>
+      <description>The language to translate text into.</description>
+    </key>
+    <key name="translate-while-typing" type="b">
+      <default>true</default>
+      <summary>Translate while typing</summary>
+      <description>Start a translation after text stops changing for one second.</description>
+    </key>
+    <key name="translation-cache-enabled" type="b">
+      <default>false</default>
+      <summary>Enable translation cache</summary>
+      <description>Keep successful translations in memory for reuse during this session.</description>
+    </key>
+    <key name="translation-cache-size" type="i">
+      <default>200</default>
+      <range min="0" max="1000"/>
+      <summary>Translation cache capacity</summary>
+      <description>Maximum number of successful translations held in memory. Zero disables caching.</description>
+    </key>
+  </schema>
+</schemalist>

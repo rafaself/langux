@@ -1,3 +1,4 @@
+use gtk::gio::prelude::*;
 use gtk::prelude::*;
 use gtk::{ApplicationWindow, DropDown, EventControllerKey, PropagationPhase, TextView, gdk, glib};
 use langux_core::{
@@ -17,6 +18,8 @@ struct TranslationUiState {
     debouncer: LiveTranslationDebouncer,
     pending_timer: Option<(langux_core::DebounceTicket, glib::SourceId)>,
     provider: Arc<dyn TranslationProvider>,
+    settings: gtk::gio::Settings,
+    settings_changed_ids: Vec<glib::SignalHandlerId>,
     view: TranslationView,
     closed: bool,
 }
@@ -27,15 +30,21 @@ pub fn connect(
     source_dropdown: &DropDown,
     target_dropdown: &DropDown,
     initial_pair: LanguagePair,
-    initial_mode: TranslationMode,
+    settings: gtk::gio::Settings,
     view: TranslationView,
     provider: Arc<dyn TranslationProvider>,
 ) {
     let state = Rc::new(RefCell::new(TranslationUiState {
-        controller: TranslationController::new(initial_pair, initial_mode),
+        controller: TranslationController::with_cache_capacity(
+            initial_pair,
+            crate::settings::translation_mode(&settings),
+            crate::settings::cache_capacity(&settings),
+        ),
         debouncer: LiveTranslationDebouncer::default(),
         pending_timer: None,
         provider,
+        settings,
+        settings_changed_ids: Vec::new(),
         view,
         closed: false,
     }));
@@ -83,14 +92,25 @@ pub fn connect(
         update_language_pair(&state, source.selected(), target.selected());
     });
 
+    connect_settings_updates(&state, source_dropdown, target_dropdown);
+
     // Keep the controller alive for as long as the window is alive. The state
     // owns child widgets but not the window, so this does not form a cycle.
     let state_for_close = Rc::clone(&state);
     window.connect_close_request(move |_| {
         cancel_pending_timer(&state_for_close, None);
-        let mut state = state_for_close.borrow_mut();
-        state.closed = true;
-        state.controller.cancel_translation();
+        let (settings, handlers) = {
+            let mut state = state_for_close.borrow_mut();
+            state.closed = true;
+            state.controller.cancel_translation();
+            (
+                state.settings.clone(),
+                std::mem::take(&mut state.settings_changed_ids),
+            )
+        };
+        for handler in handlers {
+            settings.disconnect(handler);
+        }
         glib::Propagation::Proceed
     });
 
@@ -190,9 +210,129 @@ fn update_language_pair(
     if state.borrow().closed {
         return;
     }
+    let settings = state.borrow().settings.clone();
+    let _ = crate::settings::save_language_pair(&settings, &pair);
     state.borrow_mut().controller.set_language_pair(pair);
     render(state);
     reconcile_live_timer(state);
+}
+
+fn connect_settings_updates(
+    state: &Rc<RefCell<TranslationUiState>>,
+    source_dropdown: &DropDown,
+    target_dropdown: &DropDown,
+) {
+    let settings = state.borrow().settings.clone();
+
+    let state_weak = Rc::downgrade(state);
+    let source_weak = source_dropdown.downgrade();
+    let target_weak = target_dropdown.downgrade();
+    let language_changed = settings.connect_changed(
+        Some(crate::settings::SOURCE_LANGUAGE_KEY),
+        move |settings, _| {
+            sync_language_controls(&state_weak, &source_weak, &target_weak, settings);
+        },
+    );
+
+    let state_weak = Rc::downgrade(state);
+    let source_weak = source_dropdown.downgrade();
+    let target_weak = target_dropdown.downgrade();
+    let target_language_changed = settings.connect_changed(
+        Some(crate::settings::TARGET_LANGUAGE_KEY),
+        move |settings, _| {
+            sync_language_controls(&state_weak, &source_weak, &target_weak, settings);
+        },
+    );
+
+    let state_weak = Rc::downgrade(state);
+    let mode_changed = settings.connect_changed(
+        Some(crate::settings::LIVE_TRANSLATION_KEY),
+        move |settings, _| {
+            let Some(state) = state_weak.upgrade() else {
+                return;
+            };
+            if state.borrow().closed {
+                return;
+            }
+            state
+                .borrow_mut()
+                .controller
+                .set_mode(crate::settings::translation_mode(settings));
+            render(&state);
+            reconcile_live_timer(&state);
+        },
+    );
+
+    let state_weak = Rc::downgrade(state);
+    let cache_enabled_changed = settings.connect_changed(
+        Some(crate::settings::CACHE_ENABLED_KEY),
+        move |settings, _| {
+            let Some(state) = state_weak.upgrade() else {
+                return;
+            };
+            if state.borrow().closed {
+                return;
+            }
+            state
+                .borrow_mut()
+                .controller
+                .resize_translation_cache(crate::settings::cache_capacity(settings));
+        },
+    );
+
+    let state_weak = Rc::downgrade(state);
+    let cache_capacity_changed = settings.connect_changed(
+        Some(crate::settings::CACHE_CAPACITY_KEY),
+        move |settings, _| {
+            let Some(state) = state_weak.upgrade() else {
+                return;
+            };
+            if state.borrow().closed {
+                return;
+            }
+            state
+                .borrow_mut()
+                .controller
+                .resize_translation_cache(crate::settings::cache_capacity(settings));
+        },
+    );
+
+    state.borrow_mut().settings_changed_ids.extend([
+        language_changed,
+        target_language_changed,
+        mode_changed,
+        cache_enabled_changed,
+        cache_capacity_changed,
+    ]);
+}
+
+fn sync_language_controls(
+    state: &Weak<RefCell<TranslationUiState>>,
+    source: &glib::WeakRef<DropDown>,
+    target: &glib::WeakRef<DropDown>,
+    settings: &gtk::gio::Settings,
+) {
+    let Some(state) = state.upgrade() else {
+        return;
+    };
+    if state.borrow().closed {
+        return;
+    }
+    let Some(source) = source.upgrade() else {
+        return;
+    };
+    let Some(target) = target.upgrade() else {
+        return;
+    };
+    let pair = crate::settings::language_pair(settings);
+    if let Some((source_index, target_index)) = crate::language_selection::language_indices(&pair) {
+        if source.selected() != source_index {
+            source.set_selected(source_index);
+        }
+        if target.selected() != target_index {
+            target.set_selected(target_index);
+        }
+    }
 }
 
 fn reconcile_live_timer(state: &Rc<RefCell<TranslationUiState>>) {

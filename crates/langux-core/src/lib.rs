@@ -11,7 +11,7 @@ mod translation_provider;
 pub use google_translation::GoogleTranslationProvider;
 pub use languages::{
     Language, LanguagePair, LanguagePairError, LanguageSwapError, find_supported_language,
-    supported_languages,
+    preferred_language_pair, supported_languages,
 };
 pub use secret_store::{
     GOOGLE_TRANSLATION_ACCOUNT_ID, LANGUX_SECRET_SERVICE_ID, SecretCredential, SecretStore,

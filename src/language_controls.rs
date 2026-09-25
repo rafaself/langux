@@ -2,7 +2,7 @@ use gtk::prelude::*;
 use gtk::{Box as GtkBox, Button, DropDown, Label, Orientation, StringList};
 use langux_core::{LanguagePair, SourceLanguage, supported_languages};
 
-use crate::language_selection::language_pair;
+use crate::language_selection::{language_indices, language_pair};
 
 pub struct LanguageControls {
     pub row: GtkBox,
@@ -11,7 +11,7 @@ pub struct LanguageControls {
 }
 
 impl LanguageControls {
-    pub fn build() -> Self {
+    pub fn build(initial_pair: &LanguagePair) -> Self {
         let source_names = std::iter::once("Detect language".to_owned())
             .chain(
                 supported_languages()
@@ -30,18 +30,15 @@ impl LanguageControls {
 
         let source_dropdown = DropDown::new(Some(source_model), None::<gtk::Expression>);
         source_dropdown.set_hexpand(true);
-        source_dropdown.set_selected(0);
+        let (source_index, target_index) = language_indices(initial_pair)
+            .expect("selected language pair must belong to the supported catalog");
+        source_dropdown.set_selected(source_index);
         let (source_selector, source_label) =
             selector("_Source", &source_dropdown, "Choose the source language.");
 
         let target_dropdown = DropDown::new(Some(target_model), None::<gtk::Expression>);
         target_dropdown.set_hexpand(true);
-        if let Some(english_index) = supported_languages()
-            .iter()
-            .position(|language| language.code() == "en")
-        {
-            target_dropdown.set_selected(english_index as u32);
-        }
+        target_dropdown.set_selected(target_index);
         let (target_selector, target_label) =
             selector("_Target", &target_dropdown, "Choose the target language.");
 
@@ -102,13 +99,6 @@ impl LanguageControls {
             source_dropdown,
             target_dropdown,
         }
-    }
-
-    pub fn selected_pair(&self) -> Option<LanguagePair> {
-        language_pair(
-            self.source_dropdown.selected(),
-            self.target_dropdown.selected(),
-        )
     }
 }
 

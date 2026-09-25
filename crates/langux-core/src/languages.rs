@@ -70,6 +70,26 @@ pub fn find_supported_language(code: &str) -> Option<&'static Language> {
         .find(|language| language.code == code)
 }
 
+/// Creates a supported language pair that is safe to persist as a translation
+/// default. Auto-detection is accepted only for the source; explicit equal
+/// source and target languages are rejected.
+pub fn preferred_language_pair(source_code: &str, target_code: &str) -> Option<LanguagePair> {
+    let source_language = if source_code == "auto" {
+        SourceLanguage::AutoDetect
+    } else {
+        SourceLanguage::Specific(LanguageCode::new(source_code).ok()?)
+    };
+    let target_language = LanguageCode::new(target_code).ok()?;
+    let pair = LanguagePair::new(source_language, target_language).ok()?;
+
+    if matches!(pair.source_language(), SourceLanguage::Specific(source) if source == pair.target_language())
+    {
+        return None;
+    }
+
+    Some(pair)
+}
+
 /// A validated source and target language selection.
 ///
 /// The target is a `LanguageCode`, and construction checks that it belongs to
@@ -156,7 +176,7 @@ mod tests {
 
     use super::{
         LanguagePair, LanguagePairError, LanguageSwapError, find_supported_language,
-        supported_languages,
+        preferred_language_pair, supported_languages,
     };
 
     fn code(value: &str) -> LanguageCode {
@@ -194,6 +214,15 @@ mod tests {
         assert_eq!(find_supported_language("pt-BR"), None);
         assert_eq!(find_supported_language("auto"), None);
         assert_eq!(find_supported_language("unknown"), None);
+    }
+
+    #[test]
+    fn preferred_pair_rejects_unsupported_or_identical_languages() {
+        assert!(preferred_language_pair("auto", "en").is_some());
+        assert!(preferred_language_pair("pt", "en").is_some());
+        assert!(preferred_language_pair("unsupported", "en").is_none());
+        assert!(preferred_language_pair("auto", "auto").is_none());
+        assert!(preferred_language_pair("pt", "pt").is_none());
     }
 
     #[test]

@@ -7,11 +7,12 @@ use std::sync::Arc;
 
 use crate::language_controls::LanguageControls;
 use crate::secret_translation_provider::SecretTranslationProvider;
+use crate::settings;
 use crate::translation_flow;
 use crate::translation_view::TranslationView;
-use langux_core::TranslationMode;
-
 pub fn build(app: &Application) {
+    let settings = settings::open();
+    let initial_pair = settings::language_pair(&settings);
     let window = ApplicationWindow::builder()
         .application(app)
         .title("Langux")
@@ -33,12 +34,23 @@ pub fn build(app: &Application) {
     title.set_hexpand(true);
 
     let settings_button = Button::with_label("Settings");
-    settings_button.set_tooltip_text(Some("Settings are not available yet."));
+    settings_button.set_tooltip_text(Some("Change translation defaults and API key settings."));
     title_row.append(&title);
     title_row.append(&settings_button);
     content.append(&title_row);
 
-    let language_controls = LanguageControls::build();
+    let window_for_preferences = window.clone();
+    let app_for_preferences = app.clone();
+    let settings_for_preferences = settings.clone();
+    settings_button.connect_clicked(move |_| {
+        crate::preferences::present(
+            &app_for_preferences,
+            &window_for_preferences,
+            settings_for_preferences.clone(),
+        );
+    });
+
+    let language_controls = LanguageControls::build(&initial_pair);
     content.append(&language_controls.row);
 
     let (input_area, input_view) = text_area(true);
@@ -73,10 +85,8 @@ pub fn build(app: &Application) {
         &input_view,
         &language_controls.source_dropdown,
         &language_controls.target_dropdown,
-        language_controls
-            .selected_pair()
-            .expect("default language selections are valid"),
-        TranslationMode::Live,
+        initial_pair,
+        settings,
         translation_view,
         Arc::new(SecretTranslationProvider),
     );
