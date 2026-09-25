@@ -32,7 +32,7 @@ jobs:
       - name: Install native build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install --no-install-recommends --yes elfutils libdbus-1-dev libgtk-4-dev pkg-config
+          sudo apt-get install --no-install-recommends --yes dbus-daemon elfutils libdbus-1-dev libgtk-4-dev pkg-config
 
       - name: Run Rust quality checks
         run: scripts/check-rust.sh
@@ -48,4 +48,4 @@ jobs:
           flatpak install --user --noninteractive --assumeyes flathub org.flatpak.Builder
 
       - name: Build and verify the standalone release bundle
-        run: scripts/build-flatpak.sh
+        run: dbus-run-session -- scripts/build-flatpak.sh

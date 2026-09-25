@@ -32,7 +32,7 @@ jobs:
       - name: Install native build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install --no-install-recommends --yes elfutils libdbus-1-dev libgtk-4-dev pkg-config
+          sudo apt-get install --no-install-recommends --yes dbus-daemon elfutils libdbus-1-dev libgtk-4-dev pkg-config
 
       - name: Run Rust quality checks
         run: scripts/check-rust.sh
@@ -50,7 +50,7 @@ jobs:
       - name: Build and verify the tagged release bundle
         env:
           LANGUX_RELEASE_TAG: ${{ github.ref_name }}
-        run: scripts/build-flatpak.sh
+        run: dbus-run-session -- scripts/build-flatpak.sh
 
       - name: Upload release assets for publication
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
