@@ -17,6 +17,9 @@ finish-args:
   - --env=GSK_RENDERER=cairo
   # Credentials are stored through the desktop Secret Service.
   - --talk-name=org.freedesktop.secrets
+  # SNI calls go only to the tray watcher; the item name stays in Langux's
+  # default app-owned D-Bus namespace and needs no external own-name grant.
+  - --talk-name=org.kde.StatusNotifierWatcher
   # No host filesystem, device, or unrestricted D-Bus access is granted.
 
 modules:

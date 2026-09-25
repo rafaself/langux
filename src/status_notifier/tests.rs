@@ -10,7 +10,7 @@ use crate::application_actions::Action;
 
 use super::{
     ITEM_INTERFACE, ITEM_PATH, MENU_PATH, StatusNotifierService, WATCHER_INTERFACE, WATCHER_NAME,
-    WATCHER_PATH,
+    WATCHER_PATH, item_service_name_for_pid,
 };
 
 const WATCHER_XML: &str = r#"
@@ -33,15 +33,16 @@ fn status_notifier_registers_dispatches_menu_and_tears_down() {
     let item_connection = connect_to_test_bus(&address);
     let client_connection = connect_to_test_bus(&address);
 
-    let item_name = "org.kde.StatusNotifierItem-424242-1";
+    let item_name = item_service_name_for_pid(424242);
     let registered_items = Rc::new(RefCell::new(Vec::<String>::new()));
     let host_available = Rc::new(Cell::new(false));
+    let watched_item_name = item_name.clone();
     let _item_name_watch = watcher_connection.subscribe_to_signal(
         Some("org.freedesktop.DBus"),
         Some("org.freedesktop.DBus"),
         Some("NameOwnerChanged"),
         Some("/org/freedesktop/DBus"),
-        Some(item_name),
+        Some(item_name.as_str()),
         gio::DBusSignalFlags::NONE,
         {
             let registered_items = registered_items.clone();
@@ -49,7 +50,7 @@ fn status_notifier_registers_dispatches_menu_and_tears_down() {
                 let name = signal.parameters.child_get::<String>(0);
                 let old_owner = signal.parameters.child_get::<String>(1);
                 let new_owner = signal.parameters.child_get::<String>(2);
-                if name == item_name && !old_owner.is_empty() && new_owner.is_empty() {
+                if name == watched_item_name && !old_owner.is_empty() && new_owner.is_empty() {
                     registered_items
                         .borrow_mut()
                         .retain(|registered| registered != &name);
@@ -104,20 +105,17 @@ fn status_notifier_registers_dispatches_menu_and_tears_down() {
         move |action| actions.borrow_mut().push(action)
     });
     let service =
-        StatusNotifierService::start(item_connection.clone(), item_name.to_owned(), dispatcher)
+        StatusNotifierService::start(item_connection.clone(), item_name.clone(), dispatcher)
             .expect("start SNI service");
 
     spin_until(|| registered_items.borrow().len() == 1 && service.registered_with_watcher.get());
-    assert_eq!(
-        registered_items.borrow().as_slice(),
-        &[item_name.to_owned()]
-    );
+    assert_eq!(registered_items.borrow().as_slice(), &[item_name.clone()]);
     assert!(service.watcher_available.get());
     assert!(service.registered_with_watcher.get());
 
     let item_id = get_property(
         &client_connection,
-        item_name,
+        &item_name,
         ITEM_PATH,
         ITEM_INTERFACE,
         "Id",
@@ -126,7 +124,7 @@ fn status_notifier_registers_dispatches_menu_and_tears_down() {
     assert_eq!(
         get_property(
             &client_connection,
-            item_name,
+            &item_name,
             ITEM_PATH,
             ITEM_INTERFACE,
             "Title",
@@ -135,7 +133,7 @@ fn status_notifier_registers_dispatches_menu_and_tears_down() {
     );
     let icon_name = get_property(
         &client_connection,
-        item_name,
+        &item_name,
         ITEM_PATH,
         ITEM_INTERFACE,
         "IconName",
@@ -143,7 +141,7 @@ fn status_notifier_registers_dispatches_menu_and_tears_down() {
     assert_eq!(icon_name, "io.github.rafaself.Langux");
     let tooltip = call(
         &client_connection,
-        Some(item_name),
+        Some(item_name.as_str()),
         ITEM_PATH,
         "org.freedesktop.DBus.Properties",
         "Get",
@@ -157,7 +155,7 @@ fn status_notifier_registers_dispatches_menu_and_tears_down() {
 
     call(
         &client_connection,
-        Some(item_name),
+        Some(item_name.as_str()),
         ITEM_PATH,
         ITEM_INTERFACE,
         "Activate",
@@ -168,7 +166,7 @@ fn status_notifier_registers_dispatches_menu_and_tears_down() {
 
     let layout = call(
         &client_connection,
-        Some(item_name),
+        Some(item_name.as_str()),
         MENU_PATH,
         "com.canonical.dbusmenu",
         "GetLayout",
@@ -180,17 +178,17 @@ fn status_notifier_registers_dispatches_menu_and_tears_down() {
     let children = root.child_value(2).get::<Vec<glib::Variant>>().unwrap();
     assert_eq!(children.len(), 2);
     assert_eq!(
-        layout_property(&client_connection, item_name, 1, "label"),
+        layout_property(&client_connection, &item_name, 1, "label"),
         "Show / Hide Translator"
     );
     assert_eq!(
-        layout_property(&client_connection, item_name, 2, "label"),
+        layout_property(&client_connection, &item_name, 2, "label"),
         "Quit"
     );
 
     call(
         &client_connection,
-        Some(item_name),
+        Some(item_name.as_str()),
         MENU_PATH,
         "com.canonical.dbusmenu",
         "Event",
@@ -199,7 +197,7 @@ fn status_notifier_registers_dispatches_menu_and_tears_down() {
     );
     call(
         &client_connection,
-        Some(item_name),
+        Some(item_name.as_str()),
         MENU_PATH,
         "com.canonical.dbusmenu",
         "Event",
@@ -253,8 +251,8 @@ fn status_notifier_registers_dispatches_menu_and_tears_down() {
     });
 
     drop(service);
-    spin_until(|| !name_has_owner(&client_connection, item_name));
-    assert!(!name_has_owner(&client_connection, item_name));
+    spin_until(|| !name_has_owner(&client_connection, item_name.as_str()));
+    assert!(!name_has_owner(&client_connection, item_name.as_str()));
     spin_until(|| registered_items.borrow().is_empty());
 
     gio::bus_unown_name(watcher_owner);
@@ -264,6 +262,14 @@ fn status_notifier_registers_dispatches_menu_and_tears_down() {
     let _ = client_connection.close_sync(None::<&gio::Cancellable>);
     gio::TestDBus::unset();
     bus.down();
+}
+
+#[test]
+fn item_bus_name_uses_the_flatpak_default_owned_namespace() {
+    assert_eq!(
+        item_service_name_for_pid(424242),
+        "io.github.rafaself.Langux.StatusNotifierItem_424242_1"
+    );
 }
 
 fn connect_to_test_bus(address: &str) -> gio::DBusConnection {

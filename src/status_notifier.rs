@@ -346,7 +346,13 @@ impl Drop for StatusNotifierService {
 }
 
 fn item_service_name() -> String {
-    format!("org.kde.StatusNotifierItem-{}-1", std::process::id())
+    item_service_name_for_pid(std::process::id())
+}
+
+fn item_service_name_for_pid(pid: u32) -> String {
+    // Flatpak permits ownership of the app ID namespace by default. Keep the
+    // per-process SNI name there so no broader org.kde own-name grant is needed.
+    format!("{APPLICATION_ID}.StatusNotifierItem_{pid}_1")
 }
 
 fn item_property(name: &str) -> glib::Variant {

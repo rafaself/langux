@@ -97,6 +97,18 @@ in `flatpak/cargo-sources.json`, and the build runs offline against
 `Cargo.lock`. If the lockfile changes, regenerate the vendored sources with the
 [Flatpak Cargo source generator](https://github.com/flatpak/flatpak-builder-tools/tree/41c20aa10819cdb2a4f3ca171758a96d1955c018/cargo).
 
+The sandbox grants only the `org.freedesktop.secrets` and
+`org.kde.StatusNotifierWatcher` session-bus names. The SNI item uses a name
+under `io.github.rafaself.Langux`, which Flatpak allows the app to own by
+default. The manifest does not grant the full session bus or a wildcard
+third-party bus namespace. Langux has no start-on-login option, does not add
+an autostart entry, and does not request the XDG Background portal.
+
+Tray display requires a desktop StatusNotifierWatcher and a registered tray
+host. If either is unavailable, Langux stays hidden after normal startup and
+logs a warning; `flatpak run io.github.rafaself.Langux --toggle` remains an
+explicit way to show or hide the window.
+
 The bundle build writes a SHA-256 checksum beside the artifact. For a
 version-tagged release, the tag must match the package version in
 `Cargo.toml`, for example `v1.0.0` for package version `1.0.0`. The CI and
