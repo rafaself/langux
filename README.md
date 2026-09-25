@@ -101,9 +101,9 @@ flatpak run io.github.rafaself.Langux --toggle
 
 The manifest uses the GNOME 51 runtime and SDK. Its sandbox permissions are
 limited to network access for translation, Wayland with fallback X11 and IPC for
-the GTK window, and the Secret Service D-Bus name for API-key storage. Clipboard
-and XDG portal access use Flatpak's portal proxy; no host filesystem or device
-access is requested.
+the GTK window, the Cairo renderer so no GPU device access is needed, and the
+Secret Service D-Bus name for API-key storage. Clipboard and XDG portal access use
+Flatpak's portal proxy; no host filesystem or device access is requested.
 
 The Flatpak build is offline and pinned to `Cargo.lock`. If that lockfile changes,
 regenerate `flatpak/cargo-sources.json` with the [Flatpak Cargo source generator](https://github.com/flatpak/flatpak-builder-tools/tree/41c20aa10819cdb2a4f3ca171758a96d1955c018/cargo).

@@ -13,6 +13,8 @@ finish-args:
   - --socket=wayland
   - --socket=fallback-x11
   - --share=ipc
+  # The small translator window uses CPU rendering and does not need /dev/dri.
+  - --env=GSK_RENDERER=cairo
   # Credentials are stored through the desktop Secret Service.
   - --talk-name=org.freedesktop.secrets
   # GTK clipboard and XDG portal APIs use Flatpak's portal proxy by default.
