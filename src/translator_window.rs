@@ -28,6 +28,9 @@ fn build(app: &Application) {
         .default_height(520)
         .resizable(true)
         .build();
+    // Connect before translation_flow's close handler so a user close hides
+    // the window without cancelling its in-progress translation state.
+    window.connect_close_request(|window| hide_on_close_request(|| window.set_visible(false)));
 
     let content = GtkBox::new(Orientation::Vertical, 16);
     content.set_margin_top(16);
@@ -108,14 +111,27 @@ fn build(app: &Application) {
 
 pub fn toggle(app: &Application) {
     if let Some((window, input_view)) = window_state() {
-        if window.is_visible() {
-            window.set_visible(false);
-        } else {
-            present_input(&window, &input_view);
-        }
+        toggle_visibility(
+            window.is_visible(),
+            || present_input(&window, &input_view),
+            || window.set_visible(false),
+        );
     } else {
         build(app);
     }
+}
+
+fn toggle_visibility(is_visible: bool, show: impl FnOnce(), hide: impl FnOnce()) {
+    if is_visible {
+        hide();
+    } else {
+        show();
+    }
+}
+
+fn hide_on_close_request(hide: impl FnOnce()) -> glib::Propagation {
+    hide();
+    glib::Propagation::Stop
 }
 
 fn window_state() -> Option<(ApplicationWindow, TextView)> {
@@ -149,4 +165,79 @@ fn text_area(editable: bool) -> (ScrolledWindow, TextView) {
     scrolled.set_vexpand(true);
 
     (scrolled, text_view)
+}
+
+#[cfg(test)]
+mod tests {
+    use std::cell::{Cell, RefCell};
+
+    use gtk::glib;
+
+    use super::{hide_on_close_request, toggle_visibility};
+
+    struct FakeWindow {
+        visible: Cell<bool>,
+        presentations: Cell<usize>,
+        hides: Cell<usize>,
+        destroyed: Cell<bool>,
+        input_text: RefCell<String>,
+    }
+
+    #[test]
+    fn repeated_activation_shows_and_hides_the_same_window_state() {
+        let window = FakeWindow {
+            visible: Cell::new(false),
+            presentations: Cell::new(0),
+            hides: Cell::new(0),
+            destroyed: Cell::new(false),
+            input_text: RefCell::new(String::from("translation state survives hiding")),
+        };
+
+        for _ in 0..4 {
+            toggle_visibility(
+                window.visible.get(),
+                || {
+                    window.presentations.set(window.presentations.get() + 1);
+                    window.visible.set(true);
+                },
+                || {
+                    window.hides.set(window.hides.get() + 1);
+                    window.visible.set(false);
+                },
+            );
+        }
+
+        assert_eq!(window.presentations.get(), 2);
+        assert_eq!(window.hides.get(), 2);
+        assert!(!window.visible.get());
+        assert!(!window.destroyed.get());
+        assert_eq!(
+            window.input_text.borrow().as_str(),
+            "translation state survives hiding"
+        );
+    }
+
+    #[test]
+    fn close_request_hides_and_stops_window_destruction() {
+        let window = FakeWindow {
+            visible: Cell::new(true),
+            presentations: Cell::new(0),
+            hides: Cell::new(0),
+            destroyed: Cell::new(false),
+            input_text: RefCell::new(String::from("translation state survives hiding")),
+        };
+
+        let propagation = hide_on_close_request(|| window.visible.set(false));
+        if propagation == glib::Propagation::Proceed {
+            window.destroyed.set(true);
+        }
+
+        assert_eq!(propagation, glib::Propagation::Stop);
+        assert!(!window.visible.get());
+        assert!(!window.destroyed.get());
+        assert_eq!(
+            window.input_text.borrow().as_str(),
+            "translation state survives hiding"
+        );
+    }
 }
