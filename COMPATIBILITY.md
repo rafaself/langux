@@ -203,3 +203,11 @@ the new adapter, leaving the tray popup and process lifecycle unverified. The
 same Flatpak revision and adapter can be checked again after a normal GNOME
 session reload. Translation and copy also remain unverified. Hyprland/Waybar
 validation remains deferred under #40.
+
+After recording this blocked attempt, the historical user extension
+`langux@rafaself.github.io` was re-enabled to restore the prior Langux Shell
+presentation. `gnome-extensions info` now reports `Enabled: Yes` and
+`State: ACTIVE`; its files were left in place throughout. The newly installed
+`langux-shell@rafaself.github.io` adapter remains on disk but unrecognized and
+inactive in this running session. GNOME was not restarted or logged out. This
+restoration does not validate the new adapter or close issue #39.
