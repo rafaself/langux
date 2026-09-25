@@ -97,8 +97,7 @@ fn build_with_startup_id(app: &Application, startup_id: Option<&str>) {
     translation_flow::connect(
         &window,
         &input_view,
-        &language_controls.source_dropdown,
-        &language_controls.target_dropdown,
+        &language_controls,
         initial_pair,
         settings,
         translation_view,

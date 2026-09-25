@@ -47,7 +47,7 @@ pub fn present(app: &Application, parent: &ApplicationWindow, settings: gio::Set
     content.append(&language_status);
 
     let mode_names = ["Live translation", "Manual translation"];
-    let mode_refs = mode_names.iter().copied().collect::<Vec<_>>();
+    let mode_refs = mode_names.to_vec();
     let mode_model = StringList::new(&mode_refs);
     let mode_dropdown = DropDown::new(Some(mode_model), None::<gtk::Expression>);
     mode_dropdown.set_selected(u32::from(

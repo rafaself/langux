@@ -10,6 +10,7 @@ use std::rc::{Rc, Weak};
 use std::sync::Arc;
 
 use crate::input_key_behavior::{self, InputKey, KeyAction};
+use crate::language_controls::LanguageControls;
 use crate::language_selection::language_pair;
 use crate::translation_view::TranslationView;
 
@@ -27,8 +28,7 @@ struct TranslationUiState {
 pub fn connect(
     window: &ApplicationWindow,
     input_view: &TextView,
-    source_dropdown: &DropDown,
-    target_dropdown: &DropDown,
+    language_controls: &LanguageControls,
     initial_pair: LanguagePair,
     settings: gtk::gio::Settings,
     view: TranslationView,
@@ -68,31 +68,39 @@ pub fn connect(
         reconcile_live_timer(&state);
     });
 
-    let target_weak = target_dropdown.downgrade();
+    let target_weak = language_controls.target_dropdown.downgrade();
     let state_for_source = Rc::downgrade(&state);
-    source_dropdown.connect_selected_notify(move |source| {
-        let Some(state) = state_for_source.upgrade() else {
-            return;
-        };
-        let Some(target) = target_weak.upgrade() else {
-            return;
-        };
-        update_language_pair(&state, source.selected(), target.selected());
-    });
+    language_controls
+        .source_dropdown
+        .connect_selected_notify(move |source| {
+            let Some(state) = state_for_source.upgrade() else {
+                return;
+            };
+            let Some(target) = target_weak.upgrade() else {
+                return;
+            };
+            update_language_pair(&state, source.selected(), target.selected());
+        });
 
-    let source_weak = source_dropdown.downgrade();
+    let source_weak = language_controls.source_dropdown.downgrade();
     let state_for_target = Rc::downgrade(&state);
-    target_dropdown.connect_selected_notify(move |target| {
-        let Some(state) = state_for_target.upgrade() else {
-            return;
-        };
-        let Some(source) = source_weak.upgrade() else {
-            return;
-        };
-        update_language_pair(&state, source.selected(), target.selected());
-    });
+    language_controls
+        .target_dropdown
+        .connect_selected_notify(move |target| {
+            let Some(state) = state_for_target.upgrade() else {
+                return;
+            };
+            let Some(source) = source_weak.upgrade() else {
+                return;
+            };
+            update_language_pair(&state, source.selected(), target.selected());
+        });
 
-    connect_settings_updates(&state, source_dropdown, target_dropdown);
+    connect_settings_updates(
+        &state,
+        &language_controls.source_dropdown,
+        &language_controls.target_dropdown,
+    );
 
     // Keep the controller alive for as long as the window is alive. The state
     // owns child widgets but not the window, so this does not form a cycle.
