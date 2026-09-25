@@ -12,6 +12,7 @@ mod language_selection;
 mod preferences;
 mod secret_translation_provider;
 mod settings;
+mod status_notifier;
 mod translation_flow;
 mod translation_presentation;
 mod translation_view;
@@ -36,7 +37,9 @@ fn main() -> glib::ExitCode {
         // alive while the tray integration owns the visible entry point.
         application_actions::hold_resident(app);
         application_actions::install(app);
+        status_notifier::install(app);
     });
+    app.connect_shutdown(|_| status_notifier::shutdown());
     app.connect_command_line(handle_command_line);
     app.run()
 }
