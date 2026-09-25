@@ -1,50 +1,55 @@
 # Security Policy
 
-Langux is a local-first GNOME Shell extension. Its threat surface is intentionally
-small: it stores one credential (a Google Cloud API key), makes HTTPS requests to
-Google Cloud Translation after an explicit request or, when enabled, a one-second
-pause in typing, and can query GitHub release metadata after a manual user request.
+Langux is a local-first desktop translator. The active application is a
+standalone Rust and GTK 4 app distributed primarily as a Flatpak. It has no
+Langux backend, account system, telemetry, analytics, or persistent translation
+history.
 
-## Secret handling
+## Data and credentials
 
-- The Google Cloud API key is stored in **GNOME Keyring** via libsecret. It is never
-  stored in GSettings, in extension files, or in any other plaintext location.
-- Keys must never be committed to the repository, embedded in code, or logged.
-- The key is sent to Google Cloud only, over HTTPS, in the `X-Goog-Api-Key` request
-  header — never in URLs or query strings.
-- Langux never logs or persists source or translated text. When explicitly enabled,
-  successful results can be held in a bounded in-memory LRU cache for the current
-  Shell session; caching is disabled by default, cleared on disable, and can be
-  disabled or cleared from preferences.
-- Langux has no backend and collects no telemetry. Translation requests go directly
-  from your machine to `translation.googleapis.com`.
-- Update checks are optional and manual. They contact only the fixed GitHub Releases
-  API when requested, send no translation text or API key, and do not persist the
-  response or download release assets.
+- The Google Cloud Translation API key is stored through the user's Linux
+  Secret Service. Langux does not store it in GSettings or a plaintext app
+  file, and the Settings interface never displays a saved key.
+- During translation, Langux retrieves the key into memory and sends it to
+  `translation.googleapis.com` over HTTPS in the `X-Goog-Api-Key` request
+  header. The client requires HTTPS and does not forward the key to redirects.
+- Translation text is sent directly to Google Cloud Translation when the user
+  triggers a request. Live translation is enabled by default and can be
+  disabled in Settings. Google's service and data policies apply to submitted
+  text.
+- Source text and results are held in memory while in use. The optional
+  successful-translation cache is bounded, in-memory, and disabled by default.
+  Langux does not write translation text or results to disk or logs.
+- Source and target languages, translation mode, and cache preferences are
+  stored locally with GSettings. There is no persistent translation history.
+- Results reach the system clipboard only when the user activates **Copy**.
+- The standalone app has no automatic update installer. Flatpak installation
+  and updates are managed by the user or desktop software tools.
+
+The Flatpak requests network access, Wayland with fallback X11, IPC, and access
+to the desktop Secret Service D-Bus name. It does not request unrestricted host
+filesystem or device access. GTK clipboard and portal calls use Flatpak's
+portal proxy. See [`flatpak/io.github.rafaself.Langux.yml`](flatpak/io.github.rafaself.Langux.yml)
+for the current sandbox permissions.
+
+## Protecting an API key
+
+The API key can authorize Google Cloud usage and may incur charges. Restrict it
+to the Cloud Translation API, configure project quotas and budget alerts, and
+use the Secret Service implementation provided by your desktop. If Secret
+Service is missing or locked, Langux reports that secure storage is
+unavailable; it has no plaintext-file fallback.
+
+Do not commit API keys, include them in issue reports, or paste them into
+public chats. Langux maintainers will never need the key to reproduce a
+translation bug.
 
 ## Reporting a vulnerability
 
-Please report security issues privately rather than in a public issue:
+Report security issues privately through
+[GitHub Security Advisories](https://github.com/rafaself/langux/security/advisories).
+Include the affected commit or release, a minimal reproduction, and the impact
+you observed. Do not include API keys, translation text, or other private data.
 
-1. Go to https://github.com/rafaself/langux/security/advisories and create a
-   private security advisory describing the issue.
-2. Include the affected version, a minimal reproduction, and the impact you observed.
-3. If private reporting is unavailable on the repository, open a regular issue with
-   `[SECURITY]` in the title and minimal reproduction details (never paste API keys
-   or translation content).
-
-Maintainers aim to acknowledge reports within 7 days and to ship a fix and/or
-guidance as soon as a fix is verified.
-
-## Trust model
-
-- Code: the repository, including the installer scripts, is fully auditable and
-  installed per-user. Runtime update checks fetch release metadata only; they never
-  fetch or execute release assets.
-- Installer: `scripts/install.sh` verifies the SHA-256 of the downloaded archive
-  against a checksum published on the same GitHub Release before installing.
-- Network: HTTPS only, against Google Cloud Translation on explicit user action or
-  while the user-controlled live-translation setting is enabled, and against the
-  fixed GitHub Releases API only after an explicit update-check action. Langux does
-  not perform automatic background update checks or install/reload itself; GNOME
-  tools handle installation.
+If private reporting is unavailable, open a regular issue titled
+`[SECURITY] ...` with minimal reproduction details and no secrets.

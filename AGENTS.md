@@ -1,63 +1,86 @@
 # AGENTS.md
 
+## Working agreements
+
+- Unless a dependency is highly consolidated, safe, and trustable, ask before
+  adding it to production code.
+- Avoid changes that could introduce security vulnerabilities. If a security-
+  sensitive change is necessary, explain the risk and get confirmation before
+  proceeding.
+
 ## Project
 
-Langux is a local-first GNOME Shell 49 quick translator. The v0.1 workflow is
-open → type or paste → translate with Google Cloud Translation Basic v2 → copy.
-Live translation is enabled by default; explicit mode translates on Enter or
-Ctrl+Enter, while Shift+Enter inserts a newline. The optional cache is disabled
-by default. There is no backend, account, telemetry, or persistent history.
+Langux is a local-first Linux desktop translator. The active application is a
+standalone Rust and GTK 4 app, distributed primarily as a Flatpak. Its v1.0
+workflow is open or toggle → type or paste → translate with Google Cloud
+Translation Basic v2 → copy. Live translation is enabled by default with a
+fixed one-second debounce. Manual mode translates on Enter or Ctrl+Enter;
+Shift+Enter inserts a newline. The optional cache is disabled by default and
+stays in memory. There is no Langux backend, account system, telemetry,
+analytics, or persistent translation history.
+
+The JavaScript/GJS GNOME Shell extension is frozen historical code. Its last
+release remains available at the `v0.1.1` tag. It is a behavioral reference,
+not the active architecture or an implementation dependency.
 
 ## Before changing code
 
-- Read `metadata.json`, `extension.js`, and the relevant issue first.
-- Keep changes within the issue and keep modules small; add a module instead of
-  making an existing one unnecessarily large.
-- Preserve the current architecture: `extension.js` is the Shell entry point,
-  `prefs.js` is the GTK4/libadwaita entry point, `schemas/` contains GSettings,
-  `tests/` contains pure-module tests, and `scripts/` contains developer checks.
+- Read the relevant issue and the surrounding code before editing. For
+  architecture or packaging changes, read the root `Cargo.toml`, relevant
+  crate manifest, and Flatpak manifest first.
+- Keep changes within the issue and modules small. Put platform-independent
+  translation behavior in `crates/langux-core`; keep Linux Secret Service
+  integration in `crates/langux-secret-service`; keep GTK and desktop wiring
+  in `src/`.
+- Keep provider behavior independent of GTK presentation. Prefer Freedesktop
+  and XDG interfaces for desktop integration; do not add GNOME Shell or
+  Hyprland-specific runtime dependencies to the app core.
+- Do not add Node/npm runtime dependencies or revive the GJS extension as the
+  active implementation.
 
 ## Rules
 
-- Use modern GJS ES modules (`gi://` and `resource:///org/gnome/shell/...`);
-  do not use legacy `imports.js`.
-- Keep GTK4/libadwaita in preferences code only. Keep pure `ui/` helpers and
-  service modules free of Shell/GTK imports when possible.
-- Target GNOME Shell 49 and list only tested versions in `metadata.json`.
-- Do not add Node/npm runtime dependencies. Ask for confirmation before adding
-  a production dependency.
-- Store API keys only in libsecret/GNOME Keyring, never in GSettings. Avoid
-  security-sensitive changes; if one is necessary, explain the risk and get
-  confirmation before proceeding.
-- Preserve the fixed 1000 ms live-translation debounce and the manual-mode
-  keyboard semantics.
-- Every actor, signal, keybinding, and network request created by `enable()`
-  must be cleaned up by `disable()`.
-- Add or update domain-behavior tests when changing pure modules; do not change
-  tests merely to make the runner pass.
+- Target Linux desktop environments through Rust 2024 and GTK 4. The workspace
+  declares Rust 1.85 as its minimum supported version; keep CI and docs aligned
+  with that MSRV.
+- Store API keys only through Linux Secret Service, never in GSettings,
+  plaintext files, URLs, or logs. Do not expose or redisplay a saved key.
+- Preserve the fixed 1000 ms live-translation debounce and manual-mode
+  keyboard behavior unless an issue explicitly changes them.
+- Tie GTK signals, timers, translation tasks, and portal sessions to their
+  owning window or application lifecycle. Cancel or release them when their
+  owner ends.
+- Add or update domain-behavior tests when changing pure Rust modules. Do not
+  change tests merely to make a runner pass.
+- Keep compatibility statements tied to evidence in `COMPATIBILITY.md`;
+  distinguish target environments from environments already validated.
 
 ## Validation
 
-After installing the pinned developer tools with `npm ci`, run the checks
-relevant to the files changed:
+Install the native libraries listed in `DEVELOPMENT.md`, then run the Rust
+checks relevant to changed files. For the full workspace check:
 
 ```sh
-npm run check                             # syntax, tests, Biome, schema, runtime probe
-npm run format:check                      # formatting-only check
-gsettings --schemadir schemas/ list-keys org.gnome.shell.extensions.langux
-gsettings --schemadir schemas/ get org.gnome.shell.extensions.langux source-language
+scripts/check-rust.sh
 ```
 
-For Shell changes, install the extension and run an isolated headless lifecycle
-check: enable → disable → enable. Verify that the log has no Langux errors and
-that re-enabling does not duplicate actors or signals. Keep GSettings isolated
-with `GSETTINGS_BACKEND=memory`.
+It runs formatting, Clippy, tests, and a release build. To launch a native
+development build, compile the GSettings schema and set its directory:
 
-Interactive GTK preferences are verified manually in a real session; automated
-coverage is limited to imports, static checks, and pure-module tests.
+```sh
+glib-compile-schemas schemas/
+GSETTINGS_SCHEMA_DIR="$PWD/schemas" cargo run --locked
+```
+
+GTK interaction requires a graphical session. Credential tests or live
+translation may require an available Secret Service; never place a real API
+key in test data. For Flatpak and desktop compatibility checks, follow
+`DEVELOPMENT.md` and update `COMPATIBILITY.md` with the environment, revision,
+results, and limits. Do not claim unperformed Hyprland validation.
 
 ## Delivery
 
-Review the diff for scope, lifecycle, secret-handling, and regression risks.
-Do not commit, push, open a PR, or close an issue unless the task explicitly
-requests it.
+Review the diff for issue scope, secret handling, lifecycle, and regression
+risks. Use lowercase Conventional Commit subjects in the form
+`type(scope): imperative message`. Do not commit, push, open a PR, or close an
+issue unless the task explicitly requests it.

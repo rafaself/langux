@@ -4,204 +4,175 @@
   <img src="data/icon-readme.svg" width="64" height="64" alt="Langux icon">
 </p>
 
-Langux is a keyboard-first, local-first translator for GNOME Shell: open a popup,
-type or paste text, translate it with Google Cloud Translation Basic v2, and copy
-the result. Translation requests go directly from your machine to Google; Langux
-has no backend, account system, telemetry, or persistent translation history.
-
-<img width="493" height="333" alt="image" src="https://github.com/user-attachments/assets/167fb53b-2986-47e8-8806-8ae155a7246c" />
+Langux is a keyboard-first translator for the Linux desktop. The active
+application is a standalone Rust and GTK 4 app: open or toggle its window, type
+or paste text, translate with Google Cloud Translation Basic v2, and copy the
+result. Translation requests go directly from your computer to Google. Langux
+has no backend, accounts, telemetry, or persistent translation history.
 
 ## Features
 
-- Open or toggle the translator with a configurable shortcut (`Super+T` by default).
-- Translate while typing after one second of inactivity, or use explicit Enter mode.
-- Use `Shift+Enter` for a new line; `Enter` and `Ctrl+Enter` translate in manual mode.
-- Detect the source language automatically, choose source and target languages, and swap them.
-- Copy translated text only through an explicit **Copy** action.
-- Optionally reuse successful translations with a bounded in-memory cache, disabled by default.
-- Store the Google API key in GNOME Keyring through libsecret, never in GSettings.
-- Check manually for stable releases from the Preferences window; updates are never automatic.
+- Open or toggle the translator with the XDG GlobalShortcuts portal or a
+  desktop shortcut that runs `langux --toggle`.
+- Focus the input when the window opens; use `Escape` to close it.
+- Translate after one second without input, or select manual translation.
+- Use `Shift+Enter` to insert a line. In manual mode, `Enter` or `Ctrl+Enter`
+  translates; in live mode, `Ctrl+Enter` translates immediately.
+- Detect the source language, select source and target languages, and swap them.
+- Copy the result only through the **Copy** button (`Alt+C`).
+- Optionally reuse successful translations with a bounded in-memory cache,
+  disabled by default.
+- Store the Google API key in the desktop's Linux Secret Service, not in
+  application settings or a plaintext file.
+- Distribute the same application as a Flatpak for the official GNOME and
+  Hyprland targets.
 
-## Compatibility and requirements
+## Supported environments and validation
 
-- GNOME Shell 49 on GNU/Linux, under X11 or Wayland.
-- GJS with modern ES modules, plus the GNOME 49 system libraries `libsoup3` and `libsecret`.
-- `gnome-extensions`, `curl`, and a SHA-256 tool (`sha256sum` or `shasum`) for release installation.
-- A Google Cloud project with billing enabled and the Cloud Translation API enabled.
+Langux's official target environments are Fedora Workstation with GNOME on
+Wayland and Omarchy with Hyprland on Wayland. These are targets for one app and
+one Flatpak, not separate desktop-specific editions. Other Linux desktops may
+work, but are outside the project's support guarantee.
 
-Other GNOME Shell versions may work, but only the version listed in
-[`metadata.json`](metadata.json) is tested and supported by this project.
+The available desktop validation is recorded in
+[`COMPATIBILITY.md`](COMPATIBILITY.md). The Flatpak was built and exercised on
+Fedora Linux 43 with GNOME Shell 49.10. **The Omarchy/Hyprland run is deferred**
+and has not passed; the compatibility record also lists unverified GTK
+interactions, live translation, and portal shortcut activation. The project
+does not claim that the full cross-desktop workflow has been validated.
 
-## Install a released version
+## Install
 
-Version tags matching the Rust package version (for example, `v0.1.2` for
-`version = "0.1.2"` in `Cargo.toml`) run the release checks and publish an
-x86_64 Flatpak bundle plus a SHA-256 checksum. The bundle is built from the
-tagged source with the locked Rust dependencies.
+See the [GitHub Releases](https://github.com/rafaself/langux/releases) page for
+available downloads. The existing `v0.1.0` and `v0.1.1` releases are the
+historical GNOME Shell extension and do not install the standalone app. No
+standalone Flatpak release is published yet; until one is available, build the
+app from this checkout using the [development guide](DEVELOPMENT.md).
 
-Download both files from the GitHub Release, configure Flathub, and verify the
-bundle before installing it. Replace the example filename with the version you
-downloaded:
+Future standalone releases will include a Flatpak bundle and a SHA-256
+checksum. After downloading both files into the same directory, verify and
+install the bundle with:
 
 ```sh
-flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-sha256sum --check langux-0.1.2-x86_64.flatpak.sha256
-flatpak install --user --bundle ./langux-0.1.2-x86_64.flatpak
+sha256sum --check langux-VERSION-ARCH.flatpak.sha256
+flatpak install --user --bundle ./langux-VERSION-ARCH.flatpak
 flatpak run io.github.rafaself.Langux
 ```
 
-The Flatpak bundle contains the application. Flatpak obtains the GNOME runtime
-from Flathub when it is not already installed.
+Replace `VERSION` and `ARCH` with the names in the release assets. The Flatpak
+runtime is downloaded from Flathub if it is not already installed.
 
-## Install from a checkout
+## Build and run from a checkout
 
-Use this path to test local changes:
-
-```sh
-git clone https://github.com/rafaself/langux.git
-cd langux
-npm ci
-npm run check
-scripts/dev-install.sh
-gnome-extensions enable langux@rafaself.github.io
-```
-
-`scripts/dev-install.sh` packages the checked-out extension and installs it for the
-current user. The development dependencies are not included in the extension
-archive.
-
-## Build and run the standalone Flatpak
-
-Add Flathub and install Flatpak Builder, the GNOME 51 runtime and SDK, and the
-matching Rust toolchain extension:
+For a native development build, install GTK 4, D-Bus, and Rust development
+tools, then follow [DEVELOPMENT.md](DEVELOPMENT.md). To build the same Flatpak
+format used for release artifacts, install Flatpak and Flathub's Builder app,
+then run from the repository root:
 
 ```sh
 flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-flatpak install --user flathub org.flatpak.Builder//stable org.gnome.Platform//51 org.gnome.Sdk//51 org.freedesktop.Sdk.Extension.rust-stable//26.08
+flatpak install --user flathub org.flatpak.Builder
+dbus-run-session -- scripts/build-flatpak.sh
 ```
 
-From the repository root, build and install the current checkout, then launch or
-toggle the application:
+Install and launch the locally built bundle:
 
 ```sh
-flatpak run --user --branch=stable org.flatpak.Builder \
-  --user --install --force-clean --install-deps-from=flathub \
-  --state-dir="$HOME/.cache/langux-flatpak-builder/state" \
-  --repo="$HOME/.cache/langux-flatpak-builder/repo" \
-  "$HOME/.cache/langux-flatpak-builder/build" "$PWD/flatpak/io.github.rafaself.Langux.yml"
-flatpak run io.github.rafaself.Langux --toggle
+flatpak install --user --bundle "dist/langux-0.1.0-$(flatpak --default-arch).flatpak"
+flatpak run io.github.rafaself.Langux
 ```
 
-The manifest uses the GNOME 51 runtime and SDK. Its sandbox permissions are
-limited to network access for translation, Wayland with fallback X11 and IPC for
-the GTK window, the Cairo renderer so no GPU device access is needed, and the
-Secret Service D-Bus name for API-key storage. Clipboard and XDG portal access use
-Flatpak's portal proxy; no host filesystem or device access is requested.
+The `0.1.0` in the bundle filename is the package version in this checkout;
+use the version printed by the generated artifact if it has changed.
 
-The Flatpak build is offline and pinned to `Cargo.lock`. If that lockfile changes,
-regenerate `flatpak/cargo-sources.json` with the [Flatpak Cargo source generator](https://github.com/flatpak/flatpak-builder-tools/tree/41c20aa10819cdb2a4f3ca171758a96d1955c018/cargo).
-
-To create a standalone bundle and checksum locally, install either the
-`flatpak-builder` command or the Flathub `org.flatpak.Builder` app, then run:
-
-```sh
-flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-scripts/build-flatpak.sh
-```
-
-The build script uses the current Git commit time for `SOURCE_DATE_EPOCH`, the
-locked Cargo dependency sources, and the manifest's GNOME 51 runtime. Flatpak's
-bundle format also records its generation time, so separate bundle files can
-have different checksums even when they contain the same exported application
-commit. Release automation repeats the quality checks and packaging for the
-version tag before publishing the bundle and its checksum. The checksum verifies
-the downloaded artifact against the published file.
+The manifest uses the GNOME 51 runtime and SDK. It grants network access for
+translation, Wayland with fallback X11 and IPC for the GTK window, and access
+to the desktop Secret Service for the API key. GTK clipboard and XDG portal
+calls use Flatpak's portal proxy. The app does not request host filesystem or
+device access.
 
 ## Configure Google Cloud Translation
 
-1. Create or select a Google Cloud project and enable billing.
-2. Enable the **Cloud Translation API**.
-3. Create an API key and restrict it to the Cloud Translation API. Add appropriate
-   application restrictions and project quotas or budget alerts where possible.
-4. Open Langux Preferences, select **Google Cloud → Configure**, and paste the key.
-   Use **Replace** to change it or **Remove** to delete it.
+1. Create or select a Google Cloud project, enable billing, and enable the
+   **Cloud Translation API**.
+2. Create an API key restricted to the Cloud Translation API. Set appropriate
+   application restrictions and project quotas or budget alerts where
+   possible.
+3. Open Langux **Settings**, paste the key, and choose **Save**. Use **Replace**
+   to change it or **Remove** to delete it.
 
-The key is stored in GNOME Keyring and is never written to Langux settings, files,
-logs, URLs, or the repository. Langux sends it to Google only in the
-`X-Goog-Api-Key` HTTPS request header.
+Langux stores the key through the desktop's Linux Secret Service. The saved key
+is hidden in the UI and is never written to GSettings, application files, URLs,
+or logs. For a translation request, Langux reads it into memory and sends it to
+Google in the `X-Goog-Api-Key` HTTPS header. Translation text is also sent
+directly to Google when a translation is triggered. Google Cloud billing and
+data policies apply to those requests.
 
 ## Preferences and behavior
 
 The defaults are source language `auto`, target language `en`, live translation
-enabled, and translation caching disabled.
+enabled, and translation caching disabled. Preferences store only source and
+target languages, translation mode, and cache settings.
 
-- Live mode sends non-blank text after it has remained unchanged for one second.
-- Manual mode sends text only after `Enter` or `Ctrl+Enter`; `Shift+Enter` inserts a newline.
-- The cache is session-only and can hold 0–1000 successful translations. Setting it to
-  zero disables it; disabling or clearing the cache removes existing entries.
-- The cache is cleared when the extension is disabled and is never written to disk.
+- Live mode translates non-blank input after it has remained unchanged for one
+  second.
+- Manual mode translates on `Enter` or `Ctrl+Enter`; `Shift+Enter` inserts a
+  newline. In live mode, `Enter` inserts a newline and `Ctrl+Enter` translates
+  immediately.
+- The optional cache holds up to 1000 successful translations in memory. It is
+  disabled by default and can be disabled by setting its capacity to zero.
+- The cache is discarded when the application process exits. Translation
+  history is never written to disk.
 
 ## Global shortcuts
 
-Langux requests a `Super+T` shortcut through the XDG GlobalShortcuts portal when
-it starts. Portal shortcuts are tied to the running Langux process; closing the
-last window exits the app and releases the portal binding. To activate Langux
-after its window has been closed, configure your desktop or window manager to
-run `langux --toggle` for the shortcut you want. This command launches Langux
-when it is not running and toggles the window when it is already running.
+At startup, Langux asks the XDG GlobalShortcuts portal to bind **Super+T** for
+showing or hiding the app. The desktop may ask you to approve or choose a key.
+The portal binding belongs to the running process. If the portal is
+unavailable, declined, or the app has exited, use a desktop shortcut that runs
+the same app with `--toggle`.
 
-- On GNOME, add `langux --toggle` as a custom keyboard shortcut in Keyboard
-  Settings.
-- On Hyprland, add a binding such as `bind = SUPER, T, exec, langux --toggle` to
-  your Hyprland configuration.
+For a Flatpak install, use `flatpak run io.github.rafaself.Langux --toggle` as
+the shortcut command. For a native install, use `langux --toggle`.
+
+- GNOME: add the command under **Settings → Keyboard → View and Customize
+  Shortcuts → Custom Shortcuts**.
+- Hyprland: add a binding such as
+  `bind = SUPER, T, exec, flatpak run io.github.rafaself.Langux --toggle` to
+  the Hyprland configuration.
 
 ## Privacy and data flow
 
-- Translation text is sent directly from the local machine to Google Cloud Translation
-  over HTTPS when live or manual translation is triggered.
-- Input, output, API keys, and update responses are not written to disk or logs.
-- Translated text is written to the system clipboard only when **Copy** is explicitly used.
-- The optional cache stays in memory for the current Shell session and is disabled by default.
-- Manual update checks contact only the fixed GitHub Releases API and request release
-  metadata. Langux does not download, install, or reload updates by itself.
+- Translation text and the API key go directly from Langux to Google Cloud
+  Translation over HTTPS when a translation is triggered. Langux operates no
+  translation proxy or backend.
+- The API key is stored through Linux Secret Service and is not stored in
+  GSettings or a plaintext application file.
+- Source text, results, and the optional cache stay in memory while in use;
+  Langux does not maintain persistent history or write translation content to
+  application settings.
+- The cache is disabled by default. Copying a result writes it to the system
+  clipboard only after an explicit **Copy** action.
+- Langux has no user accounts, telemetry, analytics, or automatic update
+  installer.
 
-See [`SECURITY.md`](SECURITY.md) for the threat model and vulnerability reporting
-instructions.
+See [`SECURITY.md`](SECURITY.md) for the threat model and vulnerability
+reporting instructions. See [`COMPATIBILITY.md`](COMPATIBILITY.md) for the
+current platform validation and its limits.
 
-## Uninstall
+## Legacy GNOME Shell extension
 
-```sh
-gnome-extensions uninstall langux@rafaself.github.io
-```
+The GJS extension is frozen and is not part of the active Langux application.
+Its last release, [v0.1.1](https://github.com/rafaself/langux/releases/tag/v0.1.1),
+and its source tag remain available for users who need the old extension.
+Historical extension setup notes are in
+[`RELEASE_NOTES.md`](RELEASE_NOTES.md). The extension's GJS files and install
+scripts in this repository are not used to build or run the Rust app.
 
-Removing the extension does not remove the API key from GNOME Keyring. Delete it
-from Langux Preferences before uninstalling, or remove it later with `seahorse`.
+## Contributing
 
-## Development and checks
-
-Install the pinned development tools with `npm ci`, then run the aggregate check:
-
-```sh
-npm run check             # syntax, tests, Biome, schema, and GNOME runtime probe
-npm run format:check      # check formatting without changing files
-npm run format            # intentionally format the scoped JavaScript files
-scripts/package.sh        # build dist/langux.zip and its checksum
-```
-
-The pure-module tests can also be run independently:
-
-```sh
-npm test
-```
-
-For live Shell logs:
-
-```sh
-journalctl -f -o cat /usr/bin/gnome-shell
-journalctl -f | grep -iE "langux|error|critical"
-```
-
-See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the contribution workflow.
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the Rust contribution workflow and
+[`DEVELOPMENT.md`](DEVELOPMENT.md) for local build and validation commands.
 
 ## License
 

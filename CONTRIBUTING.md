@@ -1,59 +1,56 @@
 # Contributing
 
-Thanks for contributing to Langux. Keep it simple and keep it in MVP scope.
+Thanks for contributing to Langux. The active product is the standalone Rust
+and GTK 4 application described in [epic #9](https://github.com/rafaself/langux/issues/9).
+The frozen GNOME Shell extension is preserved as historical source and a
+behavioral reference; it is not the architecture or release path for the app.
 
-## Langux 1.0 rewrite policy
+## Before you start
 
-For work under epic [#9](https://github.com/rafaself/langux/issues/9), follow
-the [rewrite policy](REWRITE.md). The standalone application is a greenfield
-rewrite; the GNOME Shell extension is a behavioral reference only.
-
-## MVP-scope rule
-
-Langux is a focused v0.1: open → translate → copy. Features outside that flow
-(persistent history, favorites, multiple providers, backends, accounts, telemetry)
-stay out of the MVP. Live translation is bounded to the user-controlled debounce
-workflow and is not persistent. See the epic (issue #1) and the issue checklist
-before starting work. If in doubt, ask in the issue first.
+- Check the related issue and keep the change within its scope. The rewrite
+  issues are sequenced so each change remains independently reviewable.
+- Follow the architecture and security guidance in [`AGENTS.md`](AGENTS.md)
+  and [`REWRITE.md`](REWRITE.md).
+- Ask before adding a production dependency unless it is highly consolidated,
+  safe, and trustable.
+- Never place API keys in GSettings, files, code, tests, or logs. Use the
+  Secret Service interface for credential work.
+- Keep translation text and API keys out of diagnostics. Do not add a Langux
+  backend, accounts, telemetry, persistent translation history, or automatic
+  update installation.
 
 ## Workflow
 
-```text
-fork/clone
-  ↓
-create a branch
-  ↓
-install/test locally
-  ↓
-open a pull request
-```
-
-1. Fork the repository and clone your fork.
-2. Create a branch: `git checkout -b feat/my-change`.
-3. Install the pinned developer tools: `npm ci`.
-4. Make changes following `AGENTS.md` (modules stay small and separated; no
-   Node/npm runtime dependencies; no Shell/GTK cross-imports in pure modules).
-5. Test locally:
+1. Fork or clone the repository and create a focused branch.
+2. Install the prerequisites and follow the build steps in
+   [`DEVELOPMENT.md`](DEVELOPMENT.md).
+3. Make the smallest change that satisfies the issue and add or update tests
+   for changed domain behavior.
+4. Run the relevant Rust checks:
 
    ```sh
-   npm run check
-   scripts/dev-install.sh      # per-user install from your checkout
+   scripts/check-rust.sh
    ```
 
-   For a full headless verification (enable/disable/re-enable without a display),
-   see the headless instructions in `AGENTS.md`.
-6. Open a pull request against `main`. Reference the issue you are solving
-   (e.g. `Closes #3`).
+   For a full local validation, this checks formatting, Clippy, workspace
+   tests, and a release build. The script requires GTK 4 and the native
+   development libraries listed in [`DEVELOPMENT.md`](DEVELOPMENT.md).
+5. Review the final diff for scope, secret handling, and lifecycle risks.
+6. Push your branch and open a pull request against `main`, describing the
+   change and linking the issue.
 
-## Reading shell logs
+## Architecture
 
-```bash
-journalctl -f -o cat /usr/bin/gnome-shell          # live shell log
-journalctl -f | grep -iE "langux|error|critical"  # Langux lines plus errors
-```
+The Rust workspace is the only active application implementation. GTK code
+belongs in `src/`; reusable translation domain behavior belongs in
+`crates/langux-core`; Linux Secret Service integration belongs in
+`crates/langux-secret-service`. Keep provider logic separate from presentation
+and keep desktop-specific integration behind narrow platform boundaries.
 
-Remember: Langux deliberately never logs the API key or translation text.
+The JavaScript, GJS, GNOME Shell metadata, and extension packaging files remain
+for the frozen v0.1.x release history. Do not extend that implementation as a
+way to implement Langux 1.0 issues.
 
 ## License
 
-Contributions are licensed under GPL-3.0-or-later (see `LICENSE`).
+Contributions are licensed under GPL-3.0-or-later (see [`LICENSE`](LICENSE)).
