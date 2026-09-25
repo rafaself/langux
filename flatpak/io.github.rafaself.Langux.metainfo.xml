@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.rafaself.Langux</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>Langux</name>
+  <summary>Translate text between languages</summary>
+  <description>
+    <p>Langux is a keyboard-first desktop translator. It translates text with Google Cloud Translation and stores the API key in the desktop Secret Service.</p>
+  </description>
+  <launchable type="desktop-id">io.github.rafaself.Langux.desktop</launchable>
+  <url type="homepage">https://github.com/rafaself/langux</url>
+  <categories>
+    <category>Utility</category>
+  </categories>
+</component>

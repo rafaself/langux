@@ -77,6 +77,37 @@ gnome-extensions enable langux@rafaself.github.io
 current user. The development dependencies are not included in the extension
 archive.
 
+## Build and run the standalone Flatpak
+
+Add Flathub and install Flatpak Builder, the GNOME 51 runtime and SDK, and the
+matching Rust toolchain extension:
+
+```sh
+flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+flatpak install --user flathub org.flatpak.Builder//stable org.gnome.Platform//51 org.gnome.Sdk//51 org.freedesktop.Sdk.Extension.rust-stable//26.08
+```
+
+From the repository root, build and install the current checkout, then launch or
+toggle the application:
+
+```sh
+flatpak run --user --branch=stable org.flatpak.Builder \
+  --user --install --force-clean --install-deps-from=flathub \
+  --state-dir="$HOME/.cache/langux-flatpak-builder/state" \
+  --repo="$HOME/.cache/langux-flatpak-builder/repo" \
+  "$HOME/.cache/langux-flatpak-builder/build" "$PWD/flatpak/io.github.rafaself.Langux.yml"
+flatpak run io.github.rafaself.Langux --toggle
+```
+
+The manifest uses the GNOME 51 runtime and SDK. Its sandbox permissions are
+limited to network access for translation, Wayland with fallback X11 and IPC for
+the GTK window, and the Secret Service D-Bus name for API-key storage. Clipboard
+and XDG portal access use Flatpak's portal proxy; no host filesystem or device
+access is requested.
+
+The Flatpak build is offline and pinned to `Cargo.lock`. If that lockfile changes,
+regenerate `flatpak/cargo-sources.json` with the [Flatpak Cargo source generator](https://github.com/flatpak/flatpak-builder-tools/tree/41c20aa10819cdb2a4f3ca171758a96d1955c018/cargo).
+
 ## Configure Google Cloud Translation
 
 1. Create or select a Google Cloud project and enable billing.

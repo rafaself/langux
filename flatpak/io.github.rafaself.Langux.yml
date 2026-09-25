@@ -1,0 +1,43 @@
+app-id: io.github.rafaself.Langux
+runtime: org.gnome.Platform
+runtime-version: '51'
+sdk: org.gnome.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.rust-stable
+command: langux
+
+finish-args:
+  # Langux sends translations directly to Google Cloud Translation over HTTPS.
+  - --share=network
+  # GTK uses Wayland where available and X11 as a fallback.
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --share=ipc
+  # Credentials are stored through the desktop Secret Service.
+  - --talk-name=org.freedesktop.secrets
+  # GTK clipboard and XDG portal APIs use Flatpak's portal proxy by default.
+  # No host filesystem, device, or unrestricted D-Bus access is granted.
+
+modules:
+  - name: langux
+    buildsystem: simple
+    build-options:
+      append-path: /usr/lib/sdk/rust-stable/bin
+      env:
+        CARGO_HOME: /run/build/langux/cargo
+        CARGO_NET_OFFLINE: 'true'
+    build-commands:
+      # Local builds use a directory source. Remove host-side build and VCS state
+      # from the copied source before compiling the application.
+      - rm -rf .git target dist node_modules
+      - cargo build --offline --locked --release
+      - install -Dm755 target/release/langux ${FLATPAK_DEST}/bin/langux
+      - install -Dm644 flatpak/io.github.rafaself.Langux.desktop ${FLATPAK_DEST}/share/applications/io.github.rafaself.Langux.desktop
+      - install -Dm644 flatpak/io.github.rafaself.Langux.metainfo.xml ${FLATPAK_DEST}/share/metainfo/io.github.rafaself.Langux.metainfo.xml
+      - install -Dm644 flatpak/io.github.rafaself.Langux.svg ${FLATPAK_DEST}/share/icons/hicolor/scalable/apps/io.github.rafaself.Langux.svg
+      - install -Dm644 schemas/io.github.rafaself.langux.gschema.xml ${FLATPAK_DEST}/share/glib-2.0/schemas/io.github.rafaself.langux.gschema.xml
+      - glib-compile-schemas ${FLATPAK_DEST}/share/glib-2.0/schemas
+    sources:
+      - type: dir
+        path: ..
+      - cargo-sources.json
